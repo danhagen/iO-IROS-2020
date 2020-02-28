@@ -1,5 +1,5 @@
 # iO-IROS-2020
-## ***(insideOut)* Submission for IEEE IROS 2020**
+### ***(insideOut)* Submission for IEEE IROS 2020:**
 ## Bio-inspired Foundation for Joint Angle Estimation from Non-Collocated Sensors in Tendon-Driven Robotics
 ### Daniel A. Hagen, Ali Marjaninejad, & Francisco J. Valero-Cuevas
 
@@ -14,10 +14,21 @@ pip install .
 
 Please note that you can find help for many of the python functions in this repository by using the command `run <func_name> -h`.
 
-## Generating Babbling Data
-In order to generate motor babbling data, we use the class `motor_babbling_1DOF2DOA_ncTDS`. Running the function from the command line, you can alter the following optional arguments.
+## The Plant 
 
-```bash
+<p align="center">
+  <img width="500" src="https://github.com/danhagen/iO-IROS-2020/blob/master/Schematic_1DOF2DOA_system.png?raw=true">
+</p>
+
+Here we used a physical inverted pendulum that was controlled by two simulated brushed DC motors (i.e., backdriveable) that pulled on tendons with nonlinear (exponential) stiffness. This plant can either be given feedfoward inputs or controlled via a *feedback linearization controller* that takes advantage of the fact that joint stiffness and joint angle can be controlled independently. Simply prescribe trajectories for both output measures and the controller will track it.
+
+The default `run plant.py` command will test the feedback linearization algorithm. Choosing the options `--saveFigures` will save the figures and `--animate` will animate the output.
+
+
+## Generating Babbling Data
+In order to generate motor babbling data, we use the class `motor_babbling_1DOF2DOA_ncTDS`. Running the function from the command line, you can alter the following optional arguments. 
+
+```
 usage: <filename> [-h] [-dt [timestep]] [-dur [duration]] [--savefigs]
                   [--savefigsPDF] [--savedata] [--animate]
 
@@ -49,5 +60,7 @@ optional arguments:
 
 -----------------------------------------------------------------------------
 ```
+You have the option to animate the babbling data or just simply save the output figures.
 
-![Plant Schematic](Schmatic_1DOF2DOA_system.png)
+
+
