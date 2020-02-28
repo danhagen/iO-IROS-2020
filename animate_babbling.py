@@ -9,7 +9,7 @@ import matplotlib.patches as patches
 import matplotlib.patheffects as pe
 from scipy import signal
 from plantParams import *
-from plant_discrete_contact import *
+from plant import *
 import sys
 import argparse
 # plt.rc('text', usetex=True)

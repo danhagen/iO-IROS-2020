@@ -1,4 +1,4 @@
-from plant_discrete_contact import plant_pendulum_1DOF2DOF
+from plant import plant_pendulum_1DOF2DOF
 from save_params import *
 from plantParams import *
 from animate import *
