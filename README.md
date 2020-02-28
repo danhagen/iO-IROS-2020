@@ -7,7 +7,7 @@ Estimates of limb posture are critical for the control of robotic systems. This 
 
 ## Installation from GitHub
 ```bash
-git clone https://github.com/danhagen/iO-IROS-2020.git && cd iO-IROS-2020
+git clone https://github.com/danhagen/iO-IROS-2020.git && cd iO-IROS-2020/src
 pip install -r requirements.txt
 pip install .
 ```
