@@ -1,4 +1,4 @@
-from test_NN_1DOF2DOA_ncTDS_ObservabilityExperiment import *
+from test_NN_1DOF2DOA import *
 import matplotlib
 matplotlib.rcParams['pdf.fonttype'] = 42
 matplotlib.rcParams['ps.fonttype'] = 42

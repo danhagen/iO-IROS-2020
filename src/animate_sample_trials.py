@@ -1,5 +1,5 @@
-from motor_babbling_1DOF2DOA_ncTDS import *
-from build_NN_1DOF2DOA_ncTDS_ObservabilityExperiment import *
+from motor_babbling_1DOF2DOA import *
+from build_NN_1DOF2DOA import *
 from save_params import *
 import os
 import matlab.engine

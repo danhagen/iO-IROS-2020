@@ -1,4 +1,4 @@
-from motor_babbling_1DOF2DOA_ncTDS import *
+from motor_babbling_1DOF2DOA import *
 from save_params import *
 import os
 import matlab.engine
@@ -201,7 +201,7 @@ class neural_network:
 
     def run_trial(self):
         ### Generate babbling data
-        babblingTrial = motor_babbling_1DOF2DOA_ncTDS(
+        babblingTrial = motor_babbling_1DOF2DOA(
             self.plant,
             self.totalParams
         )
@@ -260,7 +260,7 @@ class neural_network:
         count = 0
         while fullEpochs==False:
             ### Generate babbling data
-            babblingTrial = motor_babbling_1DOF2DOA_ncTDS(
+            babblingTrial = motor_babbling_1DOF2DOA(
                 self.plant,
                 self.totalParams
             )
@@ -421,7 +421,7 @@ if __name__=="__main__":
         description=textwrap.dedent('''\
         -----------------------------------------------------------------------------
 
-        build_NN_1DOF2DOA_ncTDS_ObservabilityExperiment.py
+        build_NN_1DOF2DOA.py
 
         -----------------------------------------------------------------------------
 
@@ -510,7 +510,7 @@ if __name__=="__main__":
     # ### Generate babbling data and SAVE ALL FIGURES AND DATA IN SPECIFIC FOLDER
     # totalPerformance = {}
     # for i in range(ANNParams["Number of Trials"]):
-    #     babblingTrial = motor_babbling_1DOF2DOA_ncTDS(plant,babblingParams)
+    #     babblingTrial = motor_babbling_1DOF2DOA(plant,babblingParams)
     #     babblingOutput = babblingTrial.run_babbling_trial(
     #         np.pi,
     #         plot=True,

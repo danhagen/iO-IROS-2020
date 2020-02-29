@@ -26,7 +26,7 @@ The default `run plant.py` command will test the feedback linearization algorith
 
 
 ## Generating Babbling Data
-In order to generate motor babbling data, we use the class `motor_babbling_1DOF2DOA_ncTDS`. Running the function from the command line, you can alter the following optional arguments. 
+In order to generate motor babbling data, we use the class `motor_babbling_1DOF2DOA`. Running the function from the command line, you can alter the following optional arguments. 
 
 ```
 usage: <filename> [-h] [-dt [timestep]] [-dur [duration]] [--savefigs]
@@ -34,7 +34,7 @@ usage: <filename> [-h] [-dt [timestep]] [-dur [duration]] [--savefigs]
 
 -----------------------------------------------------------------------------
 
-motor_babbling_1DOF2DOA_ncTDS.py
+motor_babbling_1DOF2DOA.py
 
 -----------------------------------------------------------------------------
 

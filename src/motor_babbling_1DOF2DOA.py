@@ -18,7 +18,7 @@ babblingParams = {
     "High Cutoff Frequency" : 10,
 }
 
-class motor_babbling_1DOF2DOA_ncTDS:
+class motor_babbling_1DOF2DOA:
     def __init__(self,plant,babblingParams):
         self.totalParams = plant.params
         self.totalParams.update(babblingParams)
@@ -349,7 +349,7 @@ if __name__ == '__main__':
         description=textwrap.dedent('''\
         -----------------------------------------------------------------------------
 
-        motor_babbling_1DOF2DOA_ncTDS.py
+        motor_babbling_1DOF2DOA.py
 
         -----------------------------------------------------------------------------
 
@@ -413,7 +413,7 @@ if __name__ == '__main__':
 
     ### Define plant and babbling trial
     plant = plant_pendulum_1DOF2DOF(plantParams)
-    babblingTrial = motor_babbling_1DOF2DOA_ncTDS(plant,babblingParams)
+    babblingTrial = motor_babbling_1DOF2DOA(plant,babblingParams)
     output = babblingTrial.run_babbling_trial(
         np.pi,
         plot=True,
