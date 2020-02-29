@@ -17,7 +17,7 @@ Please note that you can find help for many of the python functions in this repo
 ## The Plant 
 
 <p align="center">
-  <img width="500" src="https://github.com/danhagen/iO-IROS-2020/blob/master/Schematic_1DOF2DOA_system.png?raw=true">
+  <img width="500" src="https://github.com/danhagen/iO-IROS-2020/blob/master/img/Schematic_1DOF2DOA_system.png?raw=true">
 </p>
 
 Here we used a physical inverted pendulum that was controlled by two simulated brushed DC motors (i.e., backdriveable) that pulled on tendons with nonlinear (exponential) stiffness. This plant can either be given feedfoward inputs or controlled via a *feedback linearization controller* that takes advantage of the fact that joint stiffness and joint angle can be controlled independently. Simply prescribe trajectories for both output measures and the controller will track it.
