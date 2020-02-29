@@ -17,7 +17,7 @@ Please note that you can find help for many of the python functions in this repo
 ## The Plant 
 
 <p align="center">
-  <img width="500" src="https://github.com/danhagen/iO-IROS-2020/blob/master/img/Schematic_1DOF2DOA_system.png?raw=true">
+  <img width="500" src="https://github.com/danhagen/iO-IROS-2020/blob/master/SupplementaryFigures/Schematic_1DOF2DOA_system.png?raw=true">
 </p>
 
 Here we used a physical inverted pendulum that was controlled by two simulated brushed DC motors (i.e., backdriveable) that pulled on tendons with nonlinear (exponential) stiffness. This plant can either be given feedfoward inputs or controlled via a *feedback linearization controller* that takes advantage of the fact that joint stiffness and joint angle can be controlled independently. Simply prescribe trajectories for both output measures and the controller will track it.
@@ -26,41 +26,23 @@ The default `run plant.py` command will test the feedback linearization algorith
 
 
 ## Generating Babbling Data
-In order to generate motor babbling data, we use the class `motor_babbling_1DOF2DOA`. Running the function from the command line, you can alter the following optional arguments. 
+In order to generate motor babbling data, we use the class `motor_babbling_1DOF2DOA`. The default `run motor_babbling_1DOF2DOA.py` will produce plots of random motor babbling and the resulting states of the plant. Figures will be saved in a time-stamped folder You also have the option to animate the babbling data (`--animate`). 
 
-```
-usage: <filename> [-h] [-dt [timestep]] [-dur [duration]] [--savefigs]
-                  [--savefigsPDF] [--savedata] [--animate]
+<p align="center">
+  <img width="500" src="https://github.com/danhagen/iO-IROS-2020/blob/master/SupplementaryFigures/babblingInputs.png?raw=true">
+  <img width="500" src="https://github.com/danhagen/iO-IROS-2020/blob/master/SupplementaryFigures/Plant_States_vs_Time_from_Babbling.png?raw=true">
+</p>
 
------------------------------------------------------------------------------
+## Train Articifical Neural Networks
+To build, train, and test these ANNs, use `build_NN_1DOF2DOA` and `test_NN_1DOF2DOA`.
 
-motor_babbling_1DOF2DOA.py
+## Run Multiple Trials and Plot All Data
+To run the entire experiment, run `run run_multiple_trials_with_different_babbling_durations.py`. This will sweep across babbling durations (30,45,...,360) seconds, train multiple ANNs (*default*:50 trials), and plot average performances. You can choose to plot metrics such as mean absolute error (MAE), root mean squared error (RMSE), or standard deviation of the error (STD) by adding the additional arguments `-metrics [METRICS ...]`. 
 
------------------------------------------------------------------------------
+## Animate a Single Trial (All 4 ANNs Over 4 Different Movements)
+To visualize the performance of ANNs and their ability to generalize to other movement tasks, use the function `animate_sample_trials.py`. This will create an animation of how well each ANN did at predicting joint angle and will sweep across 4 different movements (joint angle and stiffness are either sinusoidal or point-to-point). 
 
-Motor babbling algorithm for a 1 DOF, 2 DOA tendon-driven system with
-nonlinear tendon elasticity. Low frequency white noise is added to
-random step changes to the input levels (within some bounds).
 
------------------------------------------------------------------------------
-
-optional arguments:
-  -h, --help       show this help message and exit
-  -dt [timestep]   Time step for the simulation (float). Default is given by
-                   plantParams.py
-  -dur [duration]  Duration of the simulation (float). Default is given by
-                   plantParams.py
-  --savefigs       Option to save figures for babbling trial. Default is
-                   false.
-  --savefigsPDF    Option to save figures for babbling trial as a PDF. Default
-                   is false.
-  --savedata       Option to save data for babbling trial as a Matlab .MAT
-                   file. Default is false.
-  --animate        Option to animate trial. Default is false.
-
------------------------------------------------------------------------------
-```
-You have the option to animate the babbling data or just simply save the output figures.
 
 
 
