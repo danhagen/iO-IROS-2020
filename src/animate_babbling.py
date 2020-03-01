@@ -12,6 +12,7 @@ from plantParams import *
 from plant import *
 import sys
 import argparse
+from motor_babbling_1DOF2DOA import *
 # plt.rc('text', usetex=True)
 
 class animate_pendulum_babbling:
@@ -688,26 +689,30 @@ if __name__ == '__main__':
     plantParams["dt"] = args.dt
     plantParams["Simulation Duration"] = args.dur
 
-    Time,X1d,Sd,X,U,Y,plant1,plant2 = test_plant(plantParams)
-    if len(sys.argv)-1!=0:
-        if '--savefigs' in sys.argv:
-            save_figures(
-                "visualizations/",
-                "v0",
-                plantParams,
-                returnPath=False,
-                saveAsPDF=True
-            )
-        if '--animate' in sys.argv:
-            downsamplingFactor = int(0.3/plantParams["dt"])
-            ani = animate_pendulum(
-                Time[::downsamplingFactor],
-                X[:,::downsamplingFactor],
-                U[:,::downsamplingFactor],
-                Y[:,::downsamplingFactor],
-                plant2.desiredOutput[:,::downsamplingFactor],
-                **plantParams
-            )
-            ani.start(downsamplingFactor)
-            # ani.anim.save('test.mp4', writer='ffmpeg', fps=1000/downsamplingFactor)
+    ### Define plant and babbling trial
+    plant = plant_pendulum_1DOF2DOF(plantParams)
+    babblingTrial = motor_babbling_1DOF2DOA(plant,babblingParams)
+    output = babblingTrial.run_babbling_trial(
+        np.pi,
+        plot=True,
+        saveFigures=False,
+        saveAsPDF=False,
+        returnData=True,
+        saveData=False,
+        saveParams=False
+    )
+    downsamplingFactor = int(0.3/plantParams["dt"])
+    time = output["time"]
+    X = output["X"]
+    U = output["U"]
+    Y = np.array([
+        X[0,:],
+        np.array(list(map(lambda X: plant.hs(X),X.T)))
+    ])
+    ani = animate_pendulum_babbling(
+        time,X,U,
+        downsamplingFactor,
+        **plantParams
+    )
+    ani.start(downsamplingFactor)
     plt.show()

@@ -279,7 +279,7 @@ class motor_babbling_1DOF2DOA:
 
             if saveFigures==True:
                 trialPath = save_figures(
-                    "white_noise_babbling_trials/",
+                    "babbling_trials/",
                     "propAmp",
                     self.totalParams,
                     returnPath=True,

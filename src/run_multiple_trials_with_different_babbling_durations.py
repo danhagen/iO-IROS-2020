@@ -3,7 +3,7 @@ import matplotlib
 matplotlib.rcParams['pdf.fonttype'] = 42
 matplotlib.rcParams['ps.fonttype'] = 42
 
-basePath = "white_noise_babbling_trials/Experimental_Trials_001/"
+basePath = "experimental_trials/"
 for fileNameBase in [
         "angleSin_stiffSin_",
         "angleStep_stiffSin_",
@@ -158,7 +158,7 @@ if __name__=='__main__':
         plot_consolidated_data(dur,metrics=args.metrics)
 
     pathName = (
-        'white_noise_babbling_trials/Experimental_Trials_001/'
+        'experimental_trials/'
     )
     folderName = (
         'All_Consolidated_Trials_'

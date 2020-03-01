@@ -29,7 +29,7 @@ def plot_babbling_duration_vs_average_performance(metric,directory=None):
     assert metric in ["RMSE","STD","MAE"], 'Invalid metric! metrics must include "RMSE","STD", or "MAE".'
 
     if directory==None:
-        directory = "white_noise_babbling_trials/Experimental_Trials_001/"
+        directory = "experimental_trials/"
     else:
         assert os.path.isdir(directory), "Enter a valid directory."
     trialDirectories = [
@@ -819,7 +819,7 @@ def plot_consolidated_data(babblingDuration,directory=None,metrics=None):
 
     ### get the testing trial directories
     if directory==None:
-        directory = "white_noise_babbling_trials/Experimental_Trials_001/"
+        directory = "experimental_trials/"
     else:
         assert path.isdir(directory), "Enter a valid directory."
 
@@ -1103,7 +1103,7 @@ if __name__=="__main__":
     else:
         if args.consolALL==True:
             pathName = (
-                'white_noise_babbling_trials/Experimental_Trials_001/'
+                'experimental_trials/'
             )
             folderName = (
                 'All_Consolidated_Trials_'
@@ -1140,7 +1140,7 @@ if __name__=="__main__":
                 count = 0
                 while allDone==False:
                     ### Generate Testing DATA (Angle Step, Stiffness Step)
-                    basePath = "white_noise_babbling_trials/Experimental_Trials_001/"
+                    basePath = "experimental_trials/"
 
                     print("Angle Step / Stiffness Step")
                     filePath = (basePath + "angleStep_stiffStep_")

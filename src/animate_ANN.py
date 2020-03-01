@@ -658,66 +658,67 @@ class animate_pendulum_ANN:
         self.anim = animation.FuncAnimation(self.fig, self.animate,
             frames=len(self.downsampledTime), interval=interval, blit=False)
 
-if __name__ == '__main__':
-    ### Additional Arguments?
-    parser = argparse.ArgumentParser(
-        prog = "<filename>",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        description=textwrap.dedent('''\
-        -----------------------------------------------------------------------------
-
-        animate.py
-
-        -----------------------------------------------------------------------------
-
-        Animation for 1 DOF, 2 DOA tendon-driven system with nonlinear tendon
-        elasticity.
-
-        -----------------------------------------------------------------------------'''),
-        epilog=textwrap.dedent('''\
-        -----------------------------------------------------------------------------
-
-        Written by Daniel A. Hagen (2020/01/29)
-
-        -----------------------------------------------------------------------------'''
-        )
-    )
-    parser.add_argument(
-        '-dt',
-        type=float,
-        help='Time step for the simulation (float). Default is given by plantParams.py',
-        default=plantParams["dt"]
-    )
-    parser.add_argument(
-        '-dur',
-        type=float,
-        help='Duration of the simulation (float). Default is given by plantParams.py',
-        default=plantParams["Simulation Duration"]
-    )
-    args = parser.parse_args()
-    plantParams["dt"] = args.dt
-    plantParams["Simulation Duration"] = args.dur
-
-    Time,X1d,Sd,X,U,Y,plant1,plant2 = test_plant(plantParams)
-    if len(sys.argv)-1!=0:
-        if '--savefigs' in sys.argv:
-            save_figures(
-                "visualizations/",
-                "v0",
-                plantParams,
-                returnPath=False,
-                saveAsPDF=True
-            )
-        if '--animate' in sys.argv:
-            downsamplingFactor = int(0.3/plantParams["dt"])
-            ani = animate_pendulum(
-                Time[::downsamplingFactor],
-                X[:,::downsamplingFactor],
-                U[:,::downsamplingFactor],
-                Y[:,::downsamplingFactor],
-                plant2.desiredOutput[:,::downsamplingFactor],
-                **plantParams
-            )
-            ani.start(downsamplingFactor)
-            # ani.anim.save('test.mp4', writer='ffmpeg', fps=1000/downsamplingFactor)
-    plt.show()
+### STILL IN DEVELOPMENT
+# if __name__ == '__main__':
+#     ### Additional Arguments?
+#     parser = argparse.ArgumentParser(
+#         prog = "<filename>",
+#         formatter_class=argparse.RawDescriptionHelpFormatter,
+#         description=textwrap.dedent('''\
+#         -----------------------------------------------------------------------------
+#
+#         animate.py
+#
+#         -----------------------------------------------------------------------------
+#
+#         Animation for 1 DOF, 2 DOA tendon-driven system with nonlinear tendon
+#         elasticity.
+#
+#         -----------------------------------------------------------------------------'''),
+#         epilog=textwrap.dedent('''\
+#         -----------------------------------------------------------------------------
+#
+#         Written by Daniel A. Hagen (2020/01/29)
+#
+#         -----------------------------------------------------------------------------'''
+#         )
+#     )
+#     parser.add_argument(
+#         '-dt',
+#         type=float,
+#         help='Time step for the simulation (float). Default is given by plantParams.py',
+#         default=plantParams["dt"]
+#     )
+#     parser.add_argument(
+#         '-dur',
+#         type=float,
+#         help='Duration of the simulation (float). Default is given by plantParams.py',
+#         default=plantParams["Simulation Duration"]
+#     )
+#     args = parser.parse_args()
+#     plantParams["dt"] = args.dt
+#     plantParams["Simulation Duration"] = args.dur
+#
+#     Time,X1d,Sd,X,U,Y,plant1,plant2 = test_plant(plantParams)
+#     if len(sys.argv)-1!=0:
+#         if '--savefigs' in sys.argv:
+#             save_figures(
+#                 "visualizations/",
+#                 "v0",
+#                 plantParams,
+#                 returnPath=False,
+#                 saveAsPDF=True
+#             )
+#         if '--animate' in sys.argv:
+#             downsamplingFactor = int(0.3/plantParams["dt"])
+#             ani = animate_pendulum(
+#                 Time[::downsamplingFactor],
+#                 X[:,::downsamplingFactor],
+#                 U[:,::downsamplingFactor],
+#                 Y[:,::downsamplingFactor],
+#                 plant2.desiredOutput[:,::downsamplingFactor],
+#                 **plantParams
+#             )
+#             ani.start(downsamplingFactor)
+#             # ani.anim.save('test.mp4', writer='ffmpeg', fps=1000/downsamplingFactor)
+#     plt.show()

@@ -19,7 +19,7 @@ ANNParams = {
 def plot_babbling_duration_vs_minimum_performance(directory=None):
     ### get the testing trial directories
     if directory==None:
-        directory = "white_noise_babbling_trials/Training_Trials_001/"
+        directory = "training_trials/"
     else:
         assert os.path.isdir(directory), "Enter a valid directory."
     trialDirectories = [
@@ -222,7 +222,7 @@ class neural_network:
         ### save figures and parameters
 
         self.trialPath = save_figures(
-            "white_noise_babbling_trials/Training_Trials_001/",
+            "training_trials/",
             "propAmp",
             self.totalParams,
             returnPath=True,
@@ -281,7 +281,7 @@ class neural_network:
             ### save figures and parameters
 
             self.trialPath = save_figures(
-                "white_noise_babbling_trials/Experimental_Trials_001/",
+                "experimental_trials/",
                 "propAmp",
                 self.totalParams,
                 returnPath=True,
