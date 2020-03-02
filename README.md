@@ -42,7 +42,8 @@ To run the entire experiment, run `run run_multiple_trials_with_different_babbli
 ## Animate a Single Trial (All 4 ANNs Over 4 Different Movements)
 To visualize the performance of ANNs and their ability to generalize to other movement tasks, use the function `animate_sample_trials.py`. This will create an animation of how well each ANN did at predicting joint angle and will sweep across 4 different movements (joint angle and stiffness are either sinusoidal or point-to-point). 
 
-<p align="center">
-  <a href="https://youtu.be/w0AV4tzIW98"><img width="500" src="https://i9.ytimg.com/vi/w0AV4tzIW98/mq1.jpg?sqp=CLfj7fIF&rs=AOn4CLCpdMmg4u2KBN0p1P19PNH-UIPiXg" alt="YouTube Video"></a>
+
+  
+ <a href="https://youtu.be/w0AV4tzIW98"><img src="https://user-images.githubusercontent.com/16945786/75698768-24aca280-5c64-11ea-8b74-4999e1bd62b5.gif" alt="Youtube Video Link"></a>
 </p>
 
