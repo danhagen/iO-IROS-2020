@@ -16,6 +16,12 @@ import shutil
 from animate_ANN import *
 from animate_babbling import *
 # plt.rc('text', usetex=True)
+colors = [
+    "#2A3179", # all
+    "#F4793B", # bio
+    "#8DBDE6", # kinapprox
+    "#A95AA1" # allmotor
+]
 
 def generate_and_save_sensory_data(plant,x1d,sd,savePath=None):
     X1d = np.zeros((5,len(plant.time)))
@@ -96,7 +102,7 @@ def plot_experimental_data(experimentalData,returnFigs=True):
                         experimentalData[key][subkeys[i]]["predicted_out"]
                     ).T
                 ),
-                c="C"+str(index)
+                c=colors[index]
             )
             bot_axs[i].plot(
                 plant.time,
@@ -106,7 +112,7 @@ def plot_experimental_data(experimentalData,returnFigs=True):
                         experimentalData[key][subkeys[i]]["test_error"]
                     ).T
                 ),
-                c="C"+str(index)
+                c=colors[index]
             )
 
         legendList = list(experimentalData.keys())
@@ -146,7 +152,7 @@ def plot_training_performance(
         ax.plot(
             epochArray,
             180*np.sqrt(trainingData[key]["perf"])/np.pi,
-            c="C"+str(i),
+            c=colors[i],
             lw=2
         )
     ax.legend(list(trainingData.keys()),loc='upper right')
@@ -201,19 +207,19 @@ def plot_bar_plots(outputData,metric="MAE",returnFig=True):
     fig, ax = plt.subplots(figsize=(12,5))
     rects1 = ax.bar(
         xticks - 3*width/2, allValue, width,
-        label="all", color="C0"
+        label="all", color=colors[0]
     )
     rects2 = ax.bar(
         xticks - width/2, bioValue, width,
-        label="bio", color="C1"
+        label="bio", color=colors[1]
     )
     rects3 = ax.bar(
         xticks + width/2, kinapproxValue, width,
-        label="kinapprox", color="C2"
+        label="kinapprox", color=colors[2]
     )
     rects4 = ax.bar(
         xticks + 3*width/2, allmotorValue, width,
-        label="allmotor", color="C3"
+        label="allmotor", color=colors[3]
     )
 
     # Add some text for labels, title and custom x-axis tick labels, etc.
@@ -375,7 +381,7 @@ def plot_polar_bar_plots(
                     np.log10(radial_bins[groups[i]][bin_name][metric])+offset,
                     (180/np.pi)*theta_rays[j],
                     (180/np.pi)*theta_rays[j+1],
-                    color = "C"+str(i),
+                    color = colors[i],
                     alpha=0.65
                 )
             )
@@ -427,7 +433,7 @@ def plot_polar_bar_plots(
         axs[i].text(
             0,0.25,
             subTitles[i],
-            color="C"+str(i),
+            color=colors[i],
             horizontalalignment='center',
             verticalalignment='center',
             fontsize=16
@@ -514,7 +520,9 @@ def plot_polar_bar_plots_together(
 
     # assert maxValue<3.3, "Bounds not configured for values this large. Please check values again and determine if bounds need to be changed."
 
-    im = Image.open('Schematic_1DOF2DOA_system.png')
+    basePath = path.dirname(__file__)
+    filePath = path.abspath(path.join(basePath, "..", "SupplementaryFigures", "Schematic_1DOF2DOA_system.png"))
+    im = Image.open(filePath)
     height = im.size[1]
     width = im.size[0]
     aspectRatio = width/height
@@ -565,7 +573,7 @@ def plot_polar_bar_plots_together(
                     np.log10(radial_bins[groups[i]][bin_name][metric])+2,
                     (180/np.pi)*theta_rays_times_4[4*j+i],
                     (180/np.pi)*(theta_rays_times_4[4*j+i]+sectorWidth),
-                    color = "C"+str(i),
+                    color = colors[i],
                     alpha=0.65
                 )
             )
@@ -718,13 +726,13 @@ def plot_all_error_distributions(outputData,returnFigs=True):
                 data,
                 weights=np.ones(len(data)) / len(data),
                 bins=60,
-                color="C"+str(i)
+                color=colors[i]
             )
             axs[int(i/2)][i%2].set_yticklabels(["{:.1f}%".format(100*el) for el in axs[int(i/2)][i%2].get_yticks()])
             axs[int(i/2)][i%2].set_title(
                 groups[i],
                 fontsize=14,
-                color="C"+str(i)
+                color=colors[i]
             )
             axs[int(i/2)][i%2].spines['top'].set_visible(False)
             axs[int(i/2)][i%2].spines['right'].set_visible(False)
@@ -759,7 +767,7 @@ if __name__=="__main__":
         description=textwrap.dedent('''\
         -----------------------------------------------------------------------------
 
-        animate_sample_trials.py
+        animate_sample_trial.py
 
         -----------------------------------------------------------------------------
 

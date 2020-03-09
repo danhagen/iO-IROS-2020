@@ -831,7 +831,7 @@ class plant_pendulum_1DOF2DOF:
         tAxes = [[ax1,ax2],[ax3,ax4]]
         tendonDeformation = [tendonDeformation1,tendonDeformation2]
         tendonTension = [tendonTension1,tendonTension2]
-        colors = ["C2","C3"]
+        colors = ["C0","C0"]
         for i in range(2):
             tAxes[i][0].plot(np.linspace(-1,0,1001),np.zeros((1001,)),'0.70')
             tAxes[i][0].plot(deformationArray,actualForceLengthCurve,'0.70')
@@ -867,7 +867,7 @@ class plant_pendulum_1DOF2DOF:
         fig = plt.figure()
         ax = plt.gca()
         ax.plot(self.time,X[2,:]*180/np.pi,'C0')
-        ax.plot(self.time,X[4,:]*180/np.pi,'C1')
+        ax.plot(self.time,X[4,:]*180/np.pi,'C0',ls='--')
         ax.set_xlabel("Time (s)")
         ax.set_ylabel("Motor Angles (deg)")
         ax.spines["right"].set_visible(False)

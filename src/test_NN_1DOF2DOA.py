@@ -14,6 +14,13 @@ from PIL import Image
 import time
 import shutil
 
+groups = ["all","bio","kinapprox","allmotor"]
+colors = [
+    "#2A3179", # all
+    "#F4793B", # bio
+    "#8DBDE6", # kinapprox
+    "#A95AA1" # allmotor
+]
 
 def plot_babbling_duration_vs_average_performance(metric,directory=None):
     labels = [
@@ -22,7 +29,6 @@ def plot_babbling_duration_vs_average_performance(metric,directory=None):
         "(Sinusoidal Angle / Step Stiffness)",
         "(Step Angle / Step Stiffness)"
     ]
-    groups = ["all","bio","kinapprox","allmotor"]
 
     ### get the testing trial directories
     # assert type(metrics)==list, "metrics must be a list of strings."
@@ -79,7 +85,7 @@ def plot_babbling_duration_vs_average_performance(metric,directory=None):
             axs[index].plot(
                 babblingDurations,
                 totalPerformanceData[key][groups[i]]['values'],
-                c="C"+str(i)
+                c=colors[i]
             )
             # axs[index].fill_between(
             #     babblingDurations,
@@ -91,7 +97,7 @@ def plot_babbling_duration_vs_average_performance(metric,directory=None):
             #         np.array(totalPerformanceData[key][groups[i]]['values'])
             #         - np.array(totalPerformanceData[key][groups[i]]['STDs'])
             #     ),
-            #     color="C"+str(i),
+            #     color=colors[i],
             #     alpha='0.5'
             # )
         if index==1:
@@ -117,6 +123,7 @@ def generate_and_save_sensory_data(plant,x1d,sd,savePath=None):
     plant.save_data(X,U,additionalDict=additionalDict,path=savePath)
 
 def plot_experimental_data(experimentalData,returnFigs=True):
+
     # Sin Angle/Sin Stiffness
     fig1, (ax1a,ax1b) = plt.subplots(2,1,figsize=(8,6),sharex=True)
     plt.suptitle("Sinusoidal Angle / Sinusoidal Stiffness")
@@ -170,7 +177,7 @@ def plot_experimental_data(experimentalData,returnFigs=True):
                         experimentalData[key][subkeys[i]]["predicted_out"]
                     ).T
                 ),
-                c="C"+str(index)
+                c=colors[index]
             )
             bot_axs[i].plot(
                 plant.time,
@@ -180,7 +187,7 @@ def plot_experimental_data(experimentalData,returnFigs=True):
                         experimentalData[key][subkeys[i]]["test_error"]
                     ).T
                 ),
-                c="C"+str(index)
+                c=colors[index]
             )
 
         legendList = list(experimentalData.keys())
@@ -194,6 +201,81 @@ def plot_experimental_data(experimentalData,returnFigs=True):
         return(figs)
     else:
         plt.show()
+#
+# def plot_error_signal_power_spectrums(
+#         Time,
+#         experimentalData,
+#         returnFigs=True,
+#         addTitle=None,
+#         returnFig=False
+#     ):
+#     baseTitle = "Avg. Error Signal Power Spectrum"
+#     xLabel = "Frequency (Hz)"
+#
+#     if addTitle is None:
+#         title = baseTitle
+#     else:
+#         assert type(addTitle) == str, "title must be a string."
+#         title = baseTitle + "\n" + addTitle
+#
+    groups = ["all","bio","kinapprox","allmotor"]
+#     groupNames = [
+#         "All\nAvailable\nStates",
+#         "The\nBio-Inspired\nSet",
+#         "Motor Position\nand\nVelocity Only",
+#         "All\nMotor\nStates"
+#     ]
+#     fig = plt.figure(figsize=(20,12))
+#     plt.suptitle(title, fontsize=14)
+#     ax1 = plt.subplot(221)
+#     ax2 = plt.subplot(222)
+#     ax3 = plt.subplot(223)
+#     ax3.set_xlabel(xLabel, ha="center")
+#     ax3.xaxis.set_label_coords(0.5, -0.1)
+#     ax4 = plt.subplot(224)
+#     axs = [ax1,ax2,ax3,ax4]
+#
+#     for i in range(4): # groups
+#         axs[i].set_title(groupNames[i],y=0.95,color=colors[i])
+#         axs[i].spines["top"].set_visible(False)
+#         axs[i].spines["right"].set_visible(False)
+#
+#         freqs, psd = signal.welch(
+#             self.babblingSignals[:, i],
+#             1/self.plant.dt
+#         )
+#     fig2 = plt.figure(figsize=(5, 4))
+#     ax2 = plt.gca()
+#     plt.title('PSD: power spectral density')
+#     plt.xlabel('Frequency')
+#     plt.ylabel('Power')
+#     plt.tight_layout()
+#
+#     if self.babblingSignals.shape == (len(Time[:-1]),):
+#         numberOfSignals = 1
+#     else:
+#         numberOfSignals = self.babblingSignals.shape[1]
+#     inputLineStyle = [None,"--"]
+#     inputLines = []
+#     for i in range(self.babblingSignals.shape[1]):
+#         freqs, psd = signal.welch(
+#             self.babblingSignals[:, i],
+#             1/self.plant.dt
+#         )
+#         inputLine = ax1.plot(Time[:-1], self.babblingSignals[:, i],'r',ls= inputLineStyle[i])
+#         inputLines.append(inputLine)
+#         ax2.semilogx(freqs, psd, c='r',ls=inputLineStyle[i])
+#
+#     if numberOfSignals != 1:
+#         ax1.legend(
+#             inputLines,
+#             ["Signal " + str(i+1) for i in range(numberOfSignals)],
+#             loc="upper right"
+#         )
+#         ax2.legend(
+#             ["Signal " + str(i+1) for i in range(numberOfSignals)],
+#             loc="upper right"
+#         )
 
 def plot_training_performance(
         trainingData,
@@ -201,7 +283,6 @@ def plot_training_performance(
         numberOfTrials,
         returnFig=True
     ):
-
     epochArray = np.arange(0,numberOfEpochs+1,1)
 
     fig = plt.figure(figsize=(8,6))
@@ -220,7 +301,7 @@ def plot_training_performance(
         ax.plot(
             epochArray,
             180*np.sqrt(trainingData[key]["perf"])/np.pi,
-            c="C"+str(i),
+            c=colors[i],
             lw=2
         )
     ax.legend(list(trainingData.keys()),loc='upper right')
@@ -251,7 +332,6 @@ def plot_bar_plots(outputData,metric="MAE",returnFig=True):
         "Sinusoidal Angle \n Step Stiffness",
         "Step Angle \n Step Stiffness"
     ]
-
     allValue = [
         (180/np.pi)*outputData[key]["all"][valueKey]
         for key in outputData.keys()
@@ -275,19 +355,19 @@ def plot_bar_plots(outputData,metric="MAE",returnFig=True):
     fig, ax = plt.subplots(figsize=(12,5))
     rects1 = ax.bar(
         xticks - 3*width/2, allValue, width,
-        label="all", color="C0"
+        label="all", color=colors[0]
     )
     rects2 = ax.bar(
         xticks - width/2, bioValue, width,
-        label="bio", color="C1"
+        label="bio", color=colors[1]
     )
     rects3 = ax.bar(
         xticks + width/2, kinapproxValue, width,
-        label="kinapprox", color="C2"
+        label="kinapprox", color=colors[2]
     )
     rects4 = ax.bar(
         xticks + 3*width/2, allmotorValue, width,
-        label="allmotor", color="C3"
+        label="allmotor", color=colors[3]
     )
 
     # Add some text for labels, title and custom x-axis tick labels, etc.
@@ -306,7 +386,6 @@ def plot_bar_plots(outputData,metric="MAE",returnFig=True):
 
 def return_radial_bins(errorArrays,jointAngleArrays,bins=12):
     theta_rays = np.arange(0,np.pi+1e-3,np.pi/bins)
-    groups = ["all","bio","kinapprox","allmotor"]
     radial_bins={
         "bins" : bins,
         "maxMAE" : 0,
@@ -426,7 +505,6 @@ def plot_polar_bar_plots(
 
     slices = radial_bins['bins']
     theta_rays = np.arange(0,np.pi+1e-3,np.pi/slices)
-    groups = ["all","bio","kinapprox","allmotor"]
     for i in range(4):
         for j in range(len(theta_rays)-1):
             bin_name = (
@@ -449,7 +527,7 @@ def plot_polar_bar_plots(
                     np.log10(radial_bins[groups[i]][bin_name][metric])+offset,
                     (180/np.pi)*theta_rays[j],
                     (180/np.pi)*theta_rays[j+1],
-                    color = "C"+str(i),
+                    color = colors[i],
                     alpha=0.65
                 )
             )
@@ -501,7 +579,7 @@ def plot_polar_bar_plots(
         axs[i].text(
             0,0.25,
             subTitles[i],
-            color="C"+str(i),
+            color=colors[i],
             horizontalalignment='center',
             verticalalignment='center',
             fontsize=16
@@ -512,55 +590,6 @@ def plot_polar_bar_plots(
         axs[i].spines['left'].set_visible(False)
         axs[i].spines['top'].set_visible(False)
         axs[i].spines['right'].set_visible(False)
-        # maxError = 4.1
-        # axs[i].set_aspect('equal')
-        # axs[i].set_ylim([0,maxError])
-        # axs[i].set_xlim([-maxError,maxError])
-        # xticks = list(np.arange(-np.floor(maxError),np.floor(maxError)+1e-3,1))
-        # axs[i].set_xticks(xticks)
-        # axs[i].set_xticklabels([r"$10^{2}$",r"$10^{1}$",r"$10^{0}$",r"$10^{-1}$","0",r"$10^{-1}$",r"$10^{0}$",r"$10^{1}$",r"$10^{2}$"])
-        # xticksMinor = np.concatenate(
-        #     [np.linspace(10**(i),10**(i+1),10)[1:-1] for i in range(-1,2)]
-        # )
-        # xticksMinor = np.concatenate(
-        #     [
-        #         -np.array(list(reversed(xticksMinor))),
-        #         xticksMinor
-        #     ]
-        # )
-        # xticksMinor = [np.sign(el)*(np.log10(abs(el))+2) for el in xticksMinor]
-        # axs[i].set_xticks(xticksMinor,minor=True)
-        #
-        # yticks = [0,1,2,3,4]
-        # axs[i].set_yticks(yticks)
-        # axs[i].set_yticklabels(["" for tick in axs[i].get_yticks()])
-        # yticksMinor = np.concatenate(
-        #     [np.linspace(10**(i),10**(i+1),10)[1:-1] for i in range(-1,2)]
-        # )
-        # yticksMinor = [np.sign(el)*(np.log10(abs(el))+2) for el in yticksMinor]
-        # axs[i].set_yticks(yticksMinor,minor=True)
-        #
-        # radii = list(axs[i].get_yticks())
-        # theta = np.linspace(0,np.pi,201)
-        # for radius in radii:
-        #     axs[i].plot(
-        #         [radius*np.cos(el) for el in theta],
-        #         [radius*np.sin(el) for el in theta],
-        #         "k",
-        #         lw=0.5
-        #     )
-        #
-        # for ray in theta_rays:
-        #     axs[i].plot(
-        #         [0,maxError*np.cos(ray)],
-        #         [0,maxError*np.sin(ray)],
-        #         'k',
-        #         lw=0.5
-        #     )
-        # axs[i].spines['bottom'].set_position('zero')
-        # axs[i].spines['left'].set_position('zero')
-        # axs[i].spines['top'].set_visible(False)
-        # axs[i].spines['right'].set_visible(False)
     if returnFig==True:
         return(fig)
 
@@ -588,7 +617,9 @@ def plot_polar_bar_plots_together(
 
     # assert maxValue<3.3, "Bounds not configured for values this large. Please check values again and determine if bounds need to be changed."
 
-    im = Image.open('Schematic_1DOF2DOA_system.png')
+    basePath = path.dirname(__file__)
+    filePath = path.abspath(path.join(basePath, "..", "SupplementaryFigures", "Schematic_1DOF2DOA_system.png"))
+    im = Image.open(filePath)
     height = im.size[1]
     width = im.size[0]
     aspectRatio = width/height
@@ -615,7 +646,6 @@ def plot_polar_bar_plots_together(
             [(midAngle + i*sectorWidth) for i in [-2,-1,0,1]]
         )
     theta_rays_times_4 = np.concatenate(theta_rays_times_4)
-    groups = ["all","bio","kinapprox","allmotor"]
 
     for j in range(len(theta_rays)-1):
         bin_name = (
@@ -639,7 +669,7 @@ def plot_polar_bar_plots_together(
                     np.log10(radial_bins[groups[i]][bin_name][metric])+2,
                     (180/np.pi)*theta_rays_times_4[4*j+i],
                     (180/np.pi)*(theta_rays_times_4[4*j+i]+sectorWidth),
-                    color = "C"+str(i),
+                    color = colors[i],
                     alpha=0.65
                 )
             )
@@ -726,7 +756,6 @@ def plot_all_polar_bar_plots(outputData,metric,returnFigs=True):
         "(Sinusoidal Angle / Step Stiffness)",
         "(Step Angle / Step Stiffness)"
     ]
-    groups = ["all","bio","kinapprox","allmotor"]
 
     figs = []
     for key in outputData.keys():
@@ -777,7 +806,6 @@ def plot_all_error_distributions(outputData,returnFigs=True):
         "(Sinusoidal Angle / Step Stiffness)",
         "(Step Angle / Step Stiffness)"
     ]
-    groups = ["all","bio","kinapprox","allmotor"]
 
     figs = []
     for key in outputData.keys():
@@ -792,13 +820,13 @@ def plot_all_error_distributions(outputData,returnFigs=True):
                 data,
                 weights=np.ones(len(data)) / len(data),
                 bins=60,
-                color="C"+str(i)
+                color=colors[i]
             )
             axs[int(i/2)][i%2].set_yticklabels(["{:.1f}%".format(100*el) for el in axs[int(i/2)][i%2].get_yticks()])
             axs[int(i/2)][i%2].set_title(
                 groups[i],
                 fontsize=14,
-                color="C"+str(i)
+                color=colors[i]
             )
             axs[int(i/2)][i%2].spines['top'].set_visible(False)
             axs[int(i/2)][i%2].spines['right'].set_visible(False)

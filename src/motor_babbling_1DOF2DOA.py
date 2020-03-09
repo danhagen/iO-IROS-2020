@@ -80,20 +80,34 @@ class motor_babbling_1DOF2DOA:
     def plot_signals_and_power_spectrum(self):
         assert hasattr(self,"babblingSignals"), "run generate_babbling_input before plotting the power spectrum."
 
-        fig1=plt.figure(figsize=(5,4))
-        ax1=plt.gca()
-        ax1.plot([self.plant.time[0],self.plant.time[-1]],[self.inputMaximum]*2,'k--')
-        ax1.plot([self.plant.time[0],self.plant.time[-1]],[self.inputMinimum]*2,'k--')
-        ax1.set_ylabel('Babbling Signals (Nm)')
-        ax1.set_ylim([
+        fig1=plt.figure(figsize=(5,7))
+        ax1a = plt.subplot(211)
+        ax1b = plt.subplot(212)
+        ax1a.plot([self.plant.time[0],self.plant.time[-1]],[self.inputMaximum]*2,'k--',label='_nolegend_')
+        ax1a.plot([self.plant.time[0],self.plant.time[-1]],[self.inputMinimum]*2,'k--',label='_nolegend_')
+        ax1a.set_ylabel('Babbling Input 1 (Nm)')
+        ax1a.set_ylim([
             self.inputMinimum-0.1*self.inputRange,
             self.inputMaximum+0.1*self.inputRange
         ])
-        ax1.set_xlim([self.plant.time[0],self.plant.time[-1]])
-        ax1.set_xticks(np.arange(0,6*self.plant.time[-1]/5,self.plant.time[-1]/5))
-        ax1.set_xlabel('Time (s)')
-        ax1.spines["right"].set_visible(False)
-        ax1.spines["top"].set_visible(False)
+        ax1a.set_xlim([self.plant.time[0],self.plant.time[-1]])
+        ax1a.set_xticks(np.arange(0,6*self.plant.time[-1]/5,self.plant.time[-1]/5))
+        ax1a.set_xticklabels(["" for el in ax1a.get_xticks()])
+        ax1a.spines["right"].set_visible(False)
+        ax1a.spines["top"].set_visible(False)
+
+        ax1b.plot([self.plant.time[0],self.plant.time[-1]],[self.inputMaximum]*2,'k--',label='_nolegend_')
+        ax1b.plot([self.plant.time[0],self.plant.time[-1]],[self.inputMinimum]*2,'k--',label='_nolegend_')
+        ax1b.set_ylabel('Babbling Input 2 (Nm)')
+        ax1b.set_ylim([
+            self.inputMinimum-0.1*self.inputRange,
+            self.inputMaximum+0.1*self.inputRange
+        ])
+        ax1b.set_xlim([self.plant.time[0],self.plant.time[-1]])
+        ax1b.set_xticks(np.arange(0,6*self.plant.time[-1]/5,self.plant.time[-1]/5))
+        ax1b.set_xlabel('Time (s)')
+        ax1b.spines["right"].set_visible(False)
+        ax1b.spines["top"].set_visible(False)
 
         fig2 = plt.figure(figsize=(5, 4))
         ax2=plt.gca()
@@ -102,27 +116,28 @@ class motor_babbling_1DOF2DOA:
         plt.ylabel('Power')
         plt.tight_layout()
 
-        if self.babblingSignals.shape ==(len(self.plant.time[:-1]),):
-            numberOfSignals = 1
-        else:
-            numberOfSignals = self.babblingSignals.shape[1]
+        ax1a.plot(
+            self.plant.time[:-1],
+            self.babblingSignals[:,0],
+            "r"
+        )
+        ax1b.plot(
+            self.plant.time[:-1],
+            self.babblingSignals[:,1],
+            "r"
+        )
+        inputLineStyle=[None,'--']
         for i in range(self.babblingSignals.shape[1]):
-            freqs, psd = signal.welch(
+            freqs,psd = signal.welch(
                 self.babblingSignals[:,i],
                 1/self.plant.dt
             )
-            ax1.plot(self.plant.time[:-1],self.babblingSignals[:,i],"C"+str(i))
-            ax2.semilogx(freqs, psd,c="C"+str(i))
+            ax2.semilogx(freqs,psd,c='r',ls=inputLineStyle[i])
 
-        if numberOfSignals!=1:
-            ax1.legend(
-                ["Signal " +str(i+1) for i in range(numberOfSignals)],
-                loc="upper right"
-            )
-            ax2.legend(
-                ["Signal " +str(i+1) for i in range(numberOfSignals)],
-                loc="upper right"
-            )
+        ax2.legend(
+            ["Signal " +str(i+1) for i in range(2)],
+            loc="upper right"
+        )
 
     def generate_babbling_input(self):
         """
