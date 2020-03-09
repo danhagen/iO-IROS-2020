@@ -1,3 +1,6 @@
+# large experimental trial data
+experimental_trials/*.mat
+
 # temp MATLAB files
 *.asv
 
