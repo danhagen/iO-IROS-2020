@@ -6,6 +6,8 @@
 Estimates of limb posture are critical for the control of robotic systems. This is generally accomplished by utilizing on-location joint angle encoders which may complicate the design, increase limb inertia, and add noise to the system. Conversely, some innovative or smaller robotic morphologies can benefit from non-collocated sensors when encoder size becomes prohibitively larger or the joints are less accessible or subject to damage (e.g., distal joints of a robotic hand or foot sensors subject to repeated impact). These concerns are especially important for tendon-driven systems where motors (and their sensors) are not placed at the joints. This repository represents a framework for joint angle estimation by which artificial neural networks (ANNs) use limited-experience from motor babbling to predict joint angles. We draw our inspiration for this project from Nature where (i) muscles and tendons have mechanoreceptors, (ii) there are *no dedicated joint-angle sensors*, and (iii) dedicated neural networks perform *sensory fusion*. To demonstrate this algorithm, we simulated an inverted pendulum driven by an agonist-antagonist pair of motors that pull on tendons with nonlinear elasticity.
 
 ## Installation from GitHub
+Please follow the instructions <a href='https://www.mathworks.com/help/matlab/matlab_external/install-the-matlab-engine-for-python.html'>here</a> in order to install MATLAB engine API for python. Once that is done, you can clone into this repository and install the remaining required packages by copy and pasting the following code into the terminal.
+
 ```bash
 git clone https://github.com/danhagen/iO-IROS-2020.git && cd iO-IROS-2020/src
 pip install -r requirements.txt
