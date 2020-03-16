@@ -75,11 +75,24 @@ if __name__=='__main__':
     for metric in metrics:
         assert metric in ["RMSE","MAE","STD"], "Invalid metric! Must be either 'RMSE', 'MAE', or 'STD'"
 
-    babblingDurations = list(np.arange(30,360+1,15))
+    # babblingDurations = list(np.arange(30,360+1,15))
+    babblingDurations = list(np.arange(1,30+1,1))
     numberOfTrials = args.trials
+    groupNames = [
+        "all",
+        "bio",
+        "kinapprox",
+        "allmotor"
+    ]
+
+    movementTypes = [
+        "angleSin_stiffSin",
+        "angleStep_stiffSin",
+        "angleSin_stiffStep",
+        "angleStep_stiffStep"
+    ]
 
     for dur in babblingDurations:
-
         startTime = time.time()
         trialStartTime = startTime
         print("Babbling Duration: " + str(dur) + "s")
@@ -90,31 +103,47 @@ if __name__=='__main__':
 
             ANN = neural_network(ANNParams,babblingParams,plantParams)
             experimentalData = ANN.run_experimental_trial()
+            """
+                experimentalData
+                    ..<Group Name>
+                        ..<Movement Type>
+                            ..expectedJointAngle (in rad.)
+                            ..predictedJointAngle (in rad.)
+                            ..rawError (in rad.)
+                            ..experimentRMSE (in rad.)
+                            ..experimentMAE (in rad.)
+                            ..experimentSTD (in rad.)
+            """
 
             # ### Plot experimental data
             # figs = plot_experimental_data(experimentalData,returnFigs=True)
 
             # SAVE EXPERIMENTAL DATA TO TRIAL FOLDER
-            formattedData = {
-                "all" : {},
-                "bio" : {},
-                "kinapprox" : {},
-                "allmotor" : {}
-            }
             formattedData = {}
-            for key in experimentalData["all"]:
-                formattedData[key] = {}
-                for subkey in experimentalData:
-                    formattedData[key][subkey] = {}
-                    for subsubkey in experimentalData[subkey][key]:
-                        if type(experimentalData[subkey][key][subsubkey])==float:
-                            formattedData[key][subkey][subsubkey] = \
-                                experimentalData[subkey][key][subsubkey]
+            for movement in movementTypes:
+                formattedData[movement] = {}
+                for group in groupNames:
+                    formattedData[movement][group] = {}
+                    for key in experimentalData[group][movement]:
+                        if type(experimentalData[group][movement][key])==float:
+                            formattedData[movement][group][key] = \
+                                experimentalData[group][movement][key]
                         else:
-                            formattedData[key][subkey][subsubkey] = np.array(
-                                experimentalData[subkey][key][subsubkey]._data
+                            formattedData[movement][group][key] = np.array(
+                                experimentalData[group][movement][key]._data
                             )
             experimentalData = formattedData
+            """
+                experimentalData
+                    ..<Movement Type>
+                        ..<Group Name>
+                            ..expectedJointAngle (in rad.)
+                            ..predictedJointAngle (in rad.)
+                            ..rawError (in rad.)
+                            ..experimentRMSE (in rad.)
+                            ..experimentMAE (in rad.)
+                            ..experimentSTD (in rad.)
+            """
             with open(ANN.trialPath + '\experimentalData.pkl', 'wb') as handle:
                 pickle.dump(experimentalData, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
