@@ -904,7 +904,7 @@ def plot_consolidated_data(babblingDuration,directory=None,metrics=None,includeP
     [keys.append(metricKey) for metricKey in metricKeys]
 
     for n in range(numberOfTrials):
-        with open(directory+trialDirectories[n]+'/experimentalData.pkl', 'rb') as handle:
+        with open(path.join(directory+trialDirectories[n],'experimentalData.pkl'), 'rb') as handle:
             tempOutputData = pickle.load(handle)
         if n == 0:
             totalOutputData = tempOutputData
@@ -1308,7 +1308,7 @@ if __name__=="__main__":
                                     experimentalData[subkey][key][subsubkey]._data
                                 )
                 experimentalData = formattedData
-                with open(ANN.trialPath + '\experimentalData.pkl', 'wb') as handle:
+                with open(path.join(ANN.trialPath,'experimentalData.pkl'), 'wb') as handle:
                     pickle.dump(experimentalData, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
                 for metric in metrics:

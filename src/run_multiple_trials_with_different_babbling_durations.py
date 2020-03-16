@@ -144,7 +144,7 @@ if __name__=='__main__':
                             ..experimentMAE (in rad.)
                             ..experimentSTD (in rad.)
             """
-            with open(ANN.trialPath + '\experimentalData.pkl', 'wb') as handle:
+            with open(path.join(ANN.trialPath,'experimentalData.pkl'), 'wb') as handle:
                 pickle.dump(experimentalData, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
             for metric in metrics:

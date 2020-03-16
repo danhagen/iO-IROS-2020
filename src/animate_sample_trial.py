@@ -1003,7 +1003,7 @@ if __name__=="__main__":
                         experimentalData[subkey][key][subsubkey]._data
                     )
     experimentalData = formattedData
-    with open(ANN.trialPath + '\experimentalData.pkl', 'wb') as handle:
+    with open(path.join(ANN.trialPath,'experimentalData.pkl'), 'wb') as handle:
         pickle.dump(experimentalData, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     for metric in metrics:
