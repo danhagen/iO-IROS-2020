@@ -13,13 +13,20 @@ import pickle
 from PIL import Image
 import time
 import shutil
+import copy
 
-groups = ["all","bio","kinapprox","allmotor"]
+groupNames = ["all","bio","kinapprox","allmotor"]
 colors = [
     "#2A3179", # all
     "#F4793B", # bio
     "#8DBDE6", # kinapprox
     "#A95AA1" # allmotor
+]
+movementTypes = [
+    "angleSin_stiffSin",
+    "angleStep_stiffSin",
+    "angleSin_stiffStep",
+    "angleStep_stiffStep"
 ]
 
 def plot_babbling_duration_vs_average_performance(metric,directory=None):
@@ -44,64 +51,69 @@ def plot_babbling_duration_vs_average_performance(metric,directory=None):
         and name[:2]=='Co'
     ]
     babblingDurations = np.array([
-        int(name[-4:-1]) for name in trialDirectories
-    ])
+        int(name[-8:-2]) for name in trialDirectories
+    ])/1000 # in sec
     totalPerformanceData = {}
     fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12,10))
     axs = [ax1,ax2,ax3,ax4]
     for n in range(len(trialDirectories)):
         with open(directory+trialDirectories[n]+'/consolidatedOutputData.pkl', 'rb') as handle:
             tempOutputData = pickle.load(handle)
+            """
+                tempOutputData
+                    ..<Movement Type>
+                        ..<Group Name>
+                            ..<Metric> (in rad.)
+                            ..<Metric List> (in rad.)
+            """
         if n==0:
-            for key in tempOutputData.keys():
-                totalPerformanceData[key] = {}
-                for group in groups:
-                    totalPerformanceData[key][group] = {}
-                    totalPerformanceData[key][group]['values'] = []
+            for movement in movementTypes:
+                totalPerformanceData[movement] = {}
+                for group in groupNames:
+                    totalPerformanceData[movement][group] = {}
+                    totalPerformanceData[movement][group]['values'] = []
                     # totalPerformanceData[key][group]['STDs'] = []
-        for key in tempOutputData:
-            for group in groups:
-                totalPerformanceData[key][group]['values'].append(
-                    180*tempOutputData[key][group]["test_"+metric]/np.pi
-                )
-                # totalPerformanceData[key][group]['values'].append(
-                #     180*np.median(tempOutputData[key][group]["test_"+metric+"_list"])/np.pi
+        for movement in movementTypes:
+            for group in groupNames:
+                totalPerformanceData[movement][group]['values'].append(
+                    180*tempOutputData[movement][group]["experiment"+metric]/np.pi
+                ) # (in deg.)
+                # totalPerformanceData[movement][group]['values'].append(
+                #     180*np.median(tempOutputData[movement][group]["experiment"+metric+"_list"])/np.pi
                 # )
-                # totalPerformanceData[key][group]['STDs'].append(
-                #     180*np.std(tempOutputData[key][group]["test_"+metric+"_list"])/np.pi
+                # totalPerformanceData[movement][group]['STDs'].append(
+                #     180*np.std(tempOutputData[movement][group]["experiment"+metric+"_list"])/np.pi
                 # )
-    for key in totalPerformanceData.keys():
-        index = np.where(
-            key==np.array(list(totalPerformanceData.keys()))
-        )[0][0]
-        axs[index].spines["right"].set_visible(False)
-        axs[index].spines["top"].set_visible(False)
-        axs[index].set_xlabel("Babbling Duration (sec.)")
-        axs[index].set_xticks(list(babblingDurations))
-        axs[index].set_xticklabels([int(el) for el in babblingDurations])
-        axs[index].set_ylabel("Avg. Performance ("+metric+" in deg.)")
-        axs[index].set_title(labels[index])
-        for i in range(len(groups)):
-            axs[index].plot(
+    for i in range(len(movementTypes)):
+        axs[i].spines["right"].set_visible(False)
+        axs[i].spines["top"].set_visible(False)
+        axs[i].set_xlabel("Babbling Duration (sec.)")
+        # axs[i].set_xticks(list(babblingDurations))
+        # axs[i].set_xticklabels([int(el) for el in babblingDurations])
+        axs[i].set_ylabel("Avg. Performance ("+metric+" in deg.)")
+        axs[i].set_ylim([0,35]) # Change as needed!
+        axs[i].set_title(labels[i])
+        for j in range(len(groupNames)):
+            axs[i].plot(
                 babblingDurations,
-                totalPerformanceData[key][groups[i]]['values'],
-                c=colors[i]
+                totalPerformanceData[movementTypes[i]][groupNames[j]]['values'],
+                c=colors[j]
             )
-            # axs[index].fill_between(
+            # axs[i].fill_between(
             #     babblingDurations,
             #     (
-            #         np.array(totalPerformanceData[key][groups[i]]['values'])
-            #         + np.array(totalPerformanceData[key][groups[i]]['STDs'])
+            #         np.array(totalPerformanceData[movementTypes[i]][groupNames[j]]['values'])
+            #         + np.array(totalPerformanceData[movementTypes[i]][groupNames[j]]['STDs'])
             #     ),
             #     (
-            #         np.array(totalPerformanceData[key][groups[i]]['values'])
-            #         - np.array(totalPerformanceData[key][groups[i]]['STDs'])
+            #         np.array(totalPerformanceData[movementTypes[i]][groupNames[j]]['values'])
+            #         - np.array(totalPerformanceData[movementTypes[i]][groupNames[j]]['STDs'])
             #     ),
-            #     color=colors[i],
+            #     color=colors[j],
             #     alpha='0.5'
             # )
-        if index==1:
-            axs[index].legend(groups,loc='upper right')
+        if i==1:
+            axs[i].legend(groupNames,loc='upper right')
 
 def generate_and_save_sensory_data(plant,x1d,sd,savePath=None):
     X1d = np.zeros((5,len(plant.time)))
@@ -122,8 +134,7 @@ def generate_and_save_sensory_data(plant,x1d,sd,savePath=None):
 
     plant.save_data(X,U,additionalDict=additionalDict,path=savePath)
 
-def plot_experimental_data(experimentalData,returnFigs=True):
-
+def plot_experimental_data(experimentalData,dt,returnFigs=True):
     # Sin Angle/Sin Stiffness
     fig1, (ax1a,ax1b) = plt.subplots(2,1,figsize=(8,6),sharex=True)
     plt.suptitle("Sinusoidal Angle / Sinusoidal Stiffness")
@@ -143,54 +154,54 @@ def plot_experimental_data(experimentalData,returnFigs=True):
     figs = [fig1,fig2,fig3,fig4]
     top_axs = [ax1a,ax2a,ax3a,ax4a]
     bot_axs = [ax1b,ax2b,ax3b,ax4b]
-    subkeys = list(experimentalData['all'].keys())
-
-    for i in range(4):
+    # subkeys = list(experimentalData['all'].keys())
+    timeArray = dt*np.array(list(range(
+        len(experimentalData['angleSin_stiffSin']['all']['rawError'])
+    )))
+    for i in range(len(movementTypes)):
         top_axs[i].set_ylabel("Joint Angle (deg.)")
         top_axs[i].spines["right"].set_visible(False)
         top_axs[i].spines["top"].set_visible(False)
+        plt.setp(top_axs[i].get_xticklabels(), visible=False)
         top_axs[i].plot(
-            plant.time,
+            timeArray,
             (
                 180/np.pi
                 *np.array(
-                    experimentalData['all'][subkeys[i]]["expected_out"]
+                    experimentalData[movementTypes[i]]['all']["expectedJointAngle"]
                 ).T
             ),
             c='0.70',
             lw=2
-        )
+        ) # in deg.
         bot_axs[i].set_xlabel("Time (s)")
         bot_axs[i].set_ylabel("Joint Angle Error (deg.)")
         bot_axs[i].spines["right"].set_visible(False)
         bot_axs[i].spines["top"].set_visible(False)
 
-        for key in experimentalData.keys():
-            index = np.where(
-                key==np.array(list(experimentalData.keys()))
-            )[0][0]
+        for j in range(len(groupNames)):
             top_axs[i].plot(
-                plant.time,
+                timeArray,
                 (
                     180/np.pi
                     * np.array(
-                        experimentalData[key][subkeys[i]]["predicted_out"]
+                        experimentalData[movementTypes[i]][groupNames[j]]["predictedJointAngle"]
                     ).T
                 ),
-                c=colors[index]
-            )
+                c=colors[j]
+            ) # in deg.
             bot_axs[i].plot(
-                plant.time,
+                timeArray,
                 (
                     180/np.pi
                     * np.array(
-                        experimentalData[key][subkeys[i]]["test_error"]
+                        experimentalData[movementTypes[i]][groupNames[j]]["rawError"]
                     ).T
                 ),
-                c=colors[index]
-            )
+                c=colors[j]
+            ) # in deg.
 
-        legendList = list(experimentalData.keys())
+        legendList = copy.copy(groupNames)
         legendList.insert(0,'Desired')
         ax1a.legend(legendList,loc="upper right")
         ax2a.legend(legendList,loc="upper right")
@@ -201,81 +212,55 @@ def plot_experimental_data(experimentalData,returnFigs=True):
         return(figs)
     else:
         plt.show()
-#
-# def plot_error_signal_power_spectrums(
-#         Time,
-#         experimentalData,
-#         returnFigs=True,
-#         addTitle=None,
-#         returnFig=False
-#     ):
-#     baseTitle = "Avg. Error Signal Power Spectrum"
-#     xLabel = "Frequency (Hz)"
-#
-#     if addTitle is None:
-#         title = baseTitle
-#     else:
-#         assert type(addTitle) == str, "title must be a string."
-#         title = baseTitle + "\n" + addTitle
-#
-    groups = ["all","bio","kinapprox","allmotor"]
-#     groupNames = [
-#         "All\nAvailable\nStates",
-#         "The\nBio-Inspired\nSet",
-#         "Motor Position\nand\nVelocity Only",
-#         "All\nMotor\nStates"
-#     ]
-#     fig = plt.figure(figsize=(20,12))
-#     plt.suptitle(title, fontsize=14)
-#     ax1 = plt.subplot(221)
-#     ax2 = plt.subplot(222)
-#     ax3 = plt.subplot(223)
-#     ax3.set_xlabel(xLabel, ha="center")
-#     ax3.xaxis.set_label_coords(0.5, -0.1)
-#     ax4 = plt.subplot(224)
-#     axs = [ax1,ax2,ax3,ax4]
-#
-#     for i in range(4): # groups
-#         axs[i].set_title(groupNames[i],y=0.95,color=colors[i])
-#         axs[i].spines["top"].set_visible(False)
-#         axs[i].spines["right"].set_visible(False)
-#
-#         freqs, psd = signal.welch(
-#             self.babblingSignals[:, i],
-#             1/self.plant.dt
-#         )
-#     fig2 = plt.figure(figsize=(5, 4))
-#     ax2 = plt.gca()
-#     plt.title('PSD: power spectral density')
-#     plt.xlabel('Frequency')
-#     plt.ylabel('Power')
-#     plt.tight_layout()
-#
-#     if self.babblingSignals.shape == (len(Time[:-1]),):
-#         numberOfSignals = 1
-#     else:
-#         numberOfSignals = self.babblingSignals.shape[1]
-#     inputLineStyle = [None,"--"]
-#     inputLines = []
-#     for i in range(self.babblingSignals.shape[1]):
-#         freqs, psd = signal.welch(
-#             self.babblingSignals[:, i],
-#             1/self.plant.dt
-#         )
-#         inputLine = ax1.plot(Time[:-1], self.babblingSignals[:, i],'r',ls= inputLineStyle[i])
-#         inputLines.append(inputLine)
-#         ax2.semilogx(freqs, psd, c='r',ls=inputLineStyle[i])
-#
-#     if numberOfSignals != 1:
-#         ax1.legend(
-#             inputLines,
-#             ["Signal " + str(i+1) for i in range(numberOfSignals)],
-#             loc="upper right"
-#         )
-#         ax2.legend(
-#             ["Signal " + str(i+1) for i in range(numberOfSignals)],
-#             loc="upper right"
-#         )
+
+def plot_average_error_signal_power_spectrums(
+        totalOutputData,
+        returnFigs=True
+    ):
+    labels = [
+        "(Sinusoidal Angle / Sinusoidal Stiffness)",
+        "(Step Angle / Sinusoidal Stiffness)",
+        "(Sinusoidal Angle / Step Stiffness)",
+        "(Step Angle / Step Stiffness)"
+    ]
+    baseTitle = "Avg. Error Signal Power Spectrum"
+
+    prettyGroupNames = [
+        "All Available States",
+        "The Bio-Inspired Set",
+        "Motor Position and Velocity Only",
+        "All Motor States"
+    ]
+
+    figList=[]
+    for key in totalOutputData:
+        i = np.where(
+            key==np.array(list(totalOutputData.keys()))
+        )[0][0]
+
+        fig = plt.figure(figsize=(7,5))
+        plt.suptitle(baseTitle+"\n"+labels[i], fontsize=14)
+        ax = plt.gca()
+        ax.set_xlabel("Frequency (Hz)", ha="center")
+        ax.set_ylabel(r"PSD (rad$^2$/Hz)")
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+
+        for subkey in totalOutputData[key]: # groupNames
+            j = np.where(
+                subkey==np.array(list(totalOutputData[key].keys()))
+            )[0][0]
+            ax.semilogx(
+                totalOutputData[key][subkey]['frequencies'],
+                totalOutputData[key][subkey]['avg_PSD'],
+                c=colors[j]
+            )
+
+        ax.legend(prettyGroupNames,loc='upper right')
+        figList.append(fig)
+
+    if returnFigs==True:
+        return(figList)
 
 def plot_training_performance(
         trainingData,
@@ -296,35 +281,34 @@ def plot_training_performance(
     ax.set_xticks(list(np.linspace(0,numberOfEpochs,6)))
     ax.set_xticklabels([int(el) for el in ax.get_xticks()])
 
-    for i in range(len(trainingData.keys())):
-        key = list(trainingData.keys())[i]
+    for i in range(len(groupNames)):
         ax.plot(
             epochArray,
-            180*np.sqrt(trainingData[key]["perf"])/np.pi,
+            180*np.sqrt(trainingData[groupNames[i]]["perf"])/np.pi,
             c=colors[i],
             lw=2
         )
-    ax.legend(list(trainingData.keys()),loc='upper right')
+    ax.legend(groupNames,loc='upper right')
 
     if returnFig==True:
         return(fig)
     else:
         plt.show()
 
-def plot_bar_plots(outputData,metric="MAE",returnFig=True):
+def plot_bar_plots(experimentalData,metric="MAE",returnFig=True):
     assert type(metric)==str and metric in ["MAE","STD","RMSE"], "metric must be either 'MAE' (default), 'RMSE' or 'STD'."
     if metric == "MAE":
         baseTitle = "Bar Plots of MAE by Movement Type"
         ylabel = "Mean Absolute Error (deg.)"
-        valueKey = "test_MAE"
+        valueKey = "experimentMAE"
     elif metric == 'STD':
         baseTitle = "Bar Plots of Error Std Dev by Movement Type"
         ylabel = "Error Standard Deviation (deg.)"
-        valueKey = "test_STD"
+        valueKey = "experimentSTD"
     elif metric == 'RMSE':
         baseTitle = "Bar Plots of RMSE by Movement Type"
         ylabel = "Root Mean Squared Error (deg.)"
-        valueKey = "test_RMSE"
+        valueKey = "experimentRMSE"
 
     labels = [
         "Sinusoidal Angle \n Sinusoidal Stiffness",
@@ -333,21 +317,21 @@ def plot_bar_plots(outputData,metric="MAE",returnFig=True):
         "Step Angle \n Step Stiffness"
     ]
     allValue = [
-        (180/np.pi)*outputData[key]["all"][valueKey]
-        for key in outputData.keys()
-    ]
+        (180/np.pi)*experimentalData[movement]["all"][valueKey]
+        for movement in movementTypes
+    ] # in deg.
     bioValue = [
-        (180/np.pi)*outputData[key]["bio"][valueKey]
-        for key in outputData.keys()
-    ]
+        (180/np.pi)*experimentalData[movement]["bio"][valueKey]
+        for movement in movementTypes
+    ] # in deg.
     kinapproxValue = [
-        (180/np.pi)*outputData[key]["kinapprox"][valueKey]
-        for key in outputData.keys()
-    ]
+        (180/np.pi)*experimentalData[movement]["kinapprox"][valueKey]
+        for movement in movementTypes
+    ] # in deg.
     allmotorValue = [
-        (180/np.pi)*outputData[key]["allmotor"][valueKey]
-        for key in outputData.keys()
-    ]
+        (180/np.pi)*experimentalData[movement]["allmotor"][valueKey]
+        for movement in movementTypes
+    ] # in deg.
 
     xticks = np.arange(len(labels))  # the label locations
     width = 0.2  # the width of the bars
@@ -396,7 +380,7 @@ def return_radial_bins(errorArrays,jointAngleArrays,bins=12):
         "kinapprox" : {},
         "allmotor" : {}
     }
-    for i in range(len(groups)):
+    for i in range(len(groupNames)):
         tempJointAngle = (jointAngleArrays[i,:]-np.pi/2).flatten()
         for j in range(len(theta_rays)-1):
             bin_name = (
@@ -404,7 +388,7 @@ def return_radial_bins(errorArrays,jointAngleArrays,bins=12):
                 + " to "
                 + '{:0.1f}'.format(180*theta_rays[j+1]/np.pi)
             )
-            radial_bins[groups[i]][bin_name] = {}
+            radial_bins[groupNames[i]][bin_name] = {}
             indices = np.array(
                 np.where(
                     np.logical_and(
@@ -413,45 +397,45 @@ def return_radial_bins(errorArrays,jointAngleArrays,bins=12):
                     )
                 )
             )
-            radial_bins[groups[i]][bin_name]["abs errors"] = np.array([
+            radial_bins[groupNames[i]][bin_name]["abs errors"] = np.array([
                 (180/np.pi)*abs(errorArrays[i,k])
                 for k in indices
             ]) # in degrees
-            radial_bins[groups[i]][bin_name]["errors"] = np.array([
+            radial_bins[groupNames[i]][bin_name]["errors"] = np.array([
                 (180/np.pi)*errorArrays[i,k]
                 for k in indices
             ]) # in degrees
 
             ### Mean absolute error
-            radial_bins[groups[i]][bin_name]["MAE"] = \
-                radial_bins[groups[i]][bin_name]["abs errors"].mean() # in degrees
+            radial_bins[groupNames[i]][bin_name]["MAE"] = \
+                radial_bins[groupNames[i]][bin_name]["abs errors"].mean() # in degrees
             radial_bins["maxMAE"] = max([
                 radial_bins["maxMAE"],
-                radial_bins[groups[i]][bin_name]["MAE"]
+                radial_bins[groupNames[i]][bin_name]["MAE"]
             ]) # in degrees
 
             ### Root mean squared error
-            radial_bins[groups[i]][bin_name]["RMSE"] = np.sqrt(
-                (radial_bins[groups[i]][bin_name]["errors"]**2).mean()
+            radial_bins[groupNames[i]][bin_name]["RMSE"] = np.sqrt(
+                (radial_bins[groupNames[i]][bin_name]["errors"]**2).mean()
             ) # in degrees
             radial_bins["maxRMSE"] = max([
                 radial_bins["maxRMSE"],
-                radial_bins[groups[i]][bin_name]["RMSE"]
+                radial_bins[groupNames[i]][bin_name]["RMSE"]
             ]) # in degrees
-            radial_bins[groups[i]][bin_name]["abs error std"] = \
-                radial_bins[groups[i]][bin_name]["abs errors"].std() # in degrees
-            radial_bins[groups[i]][bin_name]["min abs error"] = \
-                radial_bins[groups[i]][bin_name]["errors"].min() # in degrees
-            radial_bins[groups[i]][bin_name]["max abs error"] = \
-                radial_bins[groups[i]][bin_name]["errors"].max() # in degrees
+            radial_bins[groupNames[i]][bin_name]["abs error std"] = \
+                radial_bins[groupNames[i]][bin_name]["abs errors"].std() # in degrees
+            radial_bins[groupNames[i]][bin_name]["min abs error"] = \
+                radial_bins[groupNames[i]][bin_name]["errors"].min() # in degrees
+            radial_bins[groupNames[i]][bin_name]["max abs error"] = \
+                radial_bins[groupNames[i]][bin_name]["errors"].max() # in degrees
 
-            radial_bins[groups[i]][bin_name]["avg error"] = \
-                radial_bins[groups[i]][bin_name]["errors"].mean() # in degrees
-            radial_bins[groups[i]][bin_name]["STD"] = \
-                radial_bins[groups[i]][bin_name]["errors"].std() # in degrees
+            radial_bins[groupNames[i]][bin_name]["avg error"] = \
+                radial_bins[groupNames[i]][bin_name]["errors"].mean() # in degrees
+            radial_bins[groupNames[i]][bin_name]["STD"] = \
+                radial_bins[groupNames[i]][bin_name]["errors"].std() # in degrees
             radial_bins["maxSTD"] = max([
                 radial_bins["maxSTD"],
-                radial_bins[groups[i]][bin_name]["STD"]
+                radial_bins[groupNames[i]][bin_name]["STD"]
             ]) # in degrees
     return(radial_bins)
 
@@ -524,7 +508,7 @@ def plot_polar_bar_plots(
             axs[i].add_patch(
                 Wedge(
                     (0,0),
-                    np.log10(radial_bins[groups[i]][bin_name][metric])+offset,
+                    np.log10(radial_bins[groupNames[i]][bin_name][metric])+offset,
                     (180/np.pi)*theta_rays[j],
                     (180/np.pi)*theta_rays[j+1],
                     color = colors[i],
@@ -662,11 +646,11 @@ def plot_polar_bar_plots_together(
                     color = "0.85"
                 )
             )
-        for i in range(len(groups)):
+        for i in range(len(groupNames)):
             ax.add_patch(
                 Wedge(
                     (0,0),
-                    np.log10(radial_bins[groups[i]][bin_name][metric])+2,
+                    np.log10(radial_bins[groupNames[i]][bin_name][metric])+2,
                     (180/np.pi)*theta_rays_times_4[4*j+i],
                     (180/np.pi)*(theta_rays_times_4[4*j+i]+sectorWidth),
                     color = colors[i],
@@ -764,15 +748,15 @@ def plot_all_polar_bar_plots(outputData,metric,returnFigs=True):
         )[0][0]
         jointAngleArrays = np.concatenate(
             [
-                outputData[key][subkey]['expected_out'].flatten()[np.newaxis,:]
-                for subkey in groups
+                outputData[key][subkey]['expectedJointAngle'].flatten()[np.newaxis,:]
+                for subkey in groupNames
             ],
             axis=0
         ) # in radians
         errorArrays = np.concatenate(
             [
-                outputData[key][subkey]['test_error'].flatten()[np.newaxis,:]
-                for subkey in groups
+                outputData[key][subkey]['rawError'].flatten()[np.newaxis,:]
+                for subkey in groupNames
             ],
             axis=0
         ) # in radians
@@ -808,42 +792,39 @@ def plot_all_error_distributions(outputData,returnFigs=True):
     ]
 
     figs = []
-    for key in outputData.keys():
-        index = np.where(
-            key==np.array(list(outputData.keys()))
-        )[0][0]
+    for i in range(len(movementTypes)):
         tempFig, axs = plt.subplots(2,2,figsize=(10,10))
-        plt.suptitle(labels[index],fontsize=16)
-        for i in range(len(groups)):
-            data = 180*outputData[key][groups[i]]['test_error'].flatten()/np.pi
-            axs[int(i/2)][i%2].hist(
+        plt.suptitle(labels[i],fontsize=16)
+        for j in range(len(groupNames)):
+            data = 180*outputData[movementTypes[i]][groupNames[j]]['rawError'].flatten()/np.pi
+            axs[int(j/2)][j%2].hist(
                 data,
                 weights=np.ones(len(data)) / len(data),
                 bins=60,
-                color=colors[i]
+                color=colors[j]
             )
-            axs[int(i/2)][i%2].set_yticklabels(["{:.1f}%".format(100*el) for el in axs[int(i/2)][i%2].get_yticks()])
-            axs[int(i/2)][i%2].set_title(
-                groups[i],
+            axs[int(j/2)][j%2].set_yticklabels(["{:.1f}%".format(100*el) for el in axs[int(j/2)][j%2].get_yticks()])
+            axs[int(j/2)][j%2].set_title(
+                groupNames[j],
                 fontsize=14,
-                color=colors[i]
+                color=colors[j]
             )
-            axs[int(i/2)][i%2].spines['top'].set_visible(False)
-            axs[int(i/2)][i%2].spines['right'].set_visible(False)
+            axs[int(j/2)][j%2].spines['top'].set_visible(False)
+            axs[int(j/2)][j%2].spines['right'].set_visible(False)
         figs.append(tempFig)
 
     if returnFigs==True:
         return(figs)
 
-def plot_consolidated_data(babblingDuration,directory=None,metrics=None):
+def plot_consolidated_data(babblingDuration,directory=None,metrics=None,includePSD=False):
     if metrics is None:
         metrics = ["MAE"]
-        metricKeys = ["test_MAE"]
+        metricKeys = ["experimentMAE"]
     else:
         assert type(metrics)==list, "metrics must be a list of strings."
         for metric in metrics:
             assert metric in ["RMSE","STD","MAE"], 'Invalid metric! metrics must include "RMSE","STD", or "MAE".'
-        metricKeys = ["test_"+metric for metric in metrics]
+        metricKeys = ["experiment"+metric for metric in metrics]
 
     ### get the testing trial directories
     if directory==None:
@@ -853,8 +834,8 @@ def plot_consolidated_data(babblingDuration,directory=None,metrics=None):
 
     folderName = (
         'Consolidated_Trials_'
-        + '{:03d}'.format(int(babblingDuration))
-        + 's/'
+        + '{:06d}'.format(int(babblingDuration*1000))
+        + 'ms/'
     )
 
     trialDirectories = [
@@ -916,59 +897,103 @@ def plot_consolidated_data(babblingDuration,directory=None,metrics=None):
 
     totalOutputData = {}
 
-    subsubkey_list = [
-        "test_error",
-        "expected_out"
+    keys = [
+        "rawError",
+        "expectedJointAngle"
     ]
-    [subsubkey_list.append(metricKey) for metricKey in metricKeys]
+    [keys.append(metricKey) for metricKey in metricKeys]
 
     for n in range(numberOfTrials):
         with open(directory+trialDirectories[n]+'/experimentalData.pkl', 'rb') as handle:
             tempOutputData = pickle.load(handle)
         if n == 0:
             totalOutputData = tempOutputData
-            for key in tempOutputData:
-                for subkey in tempOutputData[key]:
-                    for subsubkey in metricKeys:
-                        totalOutputData[key][subkey][subsubkey+"_list"] = [
-                            totalOutputData[key][subkey][subsubkey]
+            """
+                tempOutputData
+                    ..<Movement Type>
+                        ..<Group Name>
+                            expectedJointAngle (in rad.)
+                            predictedJointAngle (in rad.)
+                            rawError (in rad.)
+                            experimentRMSE (in rad.)
+                            experimentMAE (in rad.)
+                            experimentSTD (in rad.)
+            """
+            for movement in movementTypes:
+                for group in groupNames:
+                    for key in metricKeys:
+                        totalOutputData[movement][group][key+"_list"] = [
+                            totalOutputData[movement][group][key]
                         ]
-                        totalOutputData[key][subkey][subsubkey] = (
-                            totalOutputData[key][subkey][subsubkey]
+                        totalOutputData[movement][group][key] = (
+                            totalOutputData[movement][group][key]
                             / numberOfTrials
                         )
+                    if includePSD==True:
+                        freq, PSD = signal.welch(
+                            totalOutputData[movement][group]["rawError"],
+                            1/plantParams['dt']
+                        )
+                        totalOutputData[movement][group]["frequencies"] = freq
+                        totalOutputData[movement][group]["avg_PSD"] = PSD/numberOfTrials
+                    for key in [
+                            "rawError",
+                            "expectedJointAngle",
+                            "predictedJointAngle",
+                            "experimentMAE",
+                            "experimentRMSE",
+                            "experimentSTD"
+                        ]:
+                        if key not in metricKeys:
+                            del(totalOutputData[movement][group][key])
         else:
-            for key in tempOutputData:
-                for subkey in tempOutputData[key]:
-                    for subsubkey in metricKeys:
-                        totalOutputData[key][subkey][subsubkey+"_list"].append(
-                            tempOutputData[key][subkey][subsubkey]
+            for movement in movementTypes:
+                for group in groupNames:
+                    for key in metricKeys:
+                        totalOutputData[movement][group][key+"_list"].append(
+                            tempOutputData[movement][group][key]
                         )
-                        totalOutputData[key][subkey][subsubkey] += (
-                            tempOutputData[key][subkey][subsubkey]
+                        totalOutputData[movement][group][key] += (
+                            tempOutputData[movement][group][key]
                             / numberOfTrials
                         )
+                    if includePSD==True:
+                        _, PSD = signal.welch(
+                            tempOutputData[movement][group]["rawError"],
+                            1/plantParams['dt']
+                        )
+                        totalOutputData[movement][group]["avg_PSD"] += PSD/numberOfTrials
         # else:
-        #     for key in tempOutputData:
-        #         for subkey in tempOutputData[key]:
-        #             for subsubkey in subsubkey_list:
-        #                 if subsubkey not in metricKeys:
-        #                     totalOutputData[key][subkey][subsubkey] = \
+        #     for movement in movementTypes:
+        #         for group in groupNames:
+        #             for key in keys:
+        #                 if key not in metricKeys:
+        #                     totalOutputData[movement][group][key] = \
         #                         np.concatenate([
-        #                             totalOutputData[key][subkey][subsubkey],
-        #                             tempOutputData[key][subkey][subsubkey]
+        #                             totalOutputData[movement][group][key],
+        #                             tempOutputData[movement][group][key]
         #                         ],
         #                         axis=0)
         #                 else:
-        #                     totalOutputData[key][subkey][subsubkey+"_list"].append(
-        #                         tempOutputData[key][subkey][subsubkey]
+        #                     totalOutputData[movement][group][key+"_list"].append(
+        #                         tempOutputData[movement][group][key]
         #                     )
-        #                     totalOutputData[key][subkey][subsubkey] += (
-        #                         tempOutputData[key][subkey][subsubkey]
+        #                     totalOutputData[movement][group][key] += (
+        #                         tempOutputData[movement][group][key]
         #                         / numberOfTrials
-        #                     )
+        #                    )
+
         # delete trial directory
         shutil.rmtree(directory+trialDirectories[n])
+        """
+            totalOutputData
+                ..<Movement Type>
+                    ..<Group Name>
+                        [frequencies] (in Hz.)
+                        [avg_PSD] (in rad.^2/Hz.)
+                        experiment<Metric> (in rad.)
+                        experiment<Metric>_list (in rad.)
+        """
 
     # plot_all_error_distributions(totalOutputData,returnFigs=True)
     #
@@ -979,6 +1004,18 @@ def plot_consolidated_data(babblingDuration,directory=None,metrics=None):
     #     subFolderName="Error_Distributions/"
     # )
     # plt.close('all')
+
+    if includePSD==True:
+        figs = plot_average_error_signal_power_spectrums(totalOutputData,returnFigs=True)
+
+        save_figures(
+            directory+folderName,
+            "err_PSD",
+            {},
+            figs=figs,
+            subFolderName="error_PSD/"
+        )
+        plt.close('all')
 
     for metric in metrics:
         fig = plot_bar_plots(
@@ -1009,15 +1046,15 @@ def plot_consolidated_data(babblingDuration,directory=None,metrics=None):
         - metric lists
     """
     consolidatedOutputData = {}
-    for key in totalOutputData.keys():
-        consolidatedOutputData[key]={}
-        for subkey in totalOutputData[key].keys():
-            consolidatedOutputData[key][subkey]={}
+    for movement in movementTypes:
+        consolidatedOutputData[movement]={}
+        for group in groupNames:
+            consolidatedOutputData[movement][group]={}
             for metric in metricKeys:
-                consolidatedOutputData[key][subkey][metric] = \
-                    totalOutputData[key][subkey][metric]
-                consolidatedOutputData[key][subkey][metric+"_list"] = \
-                    totalOutputData[key][subkey][metric+"_list"]
+                consolidatedOutputData[movement][group][metric] = \
+                    totalOutputData[movement][group][metric]
+                consolidatedOutputData[movement][group][metric+"_list"] = \
+                    totalOutputData[movement][group][metric+"_list"]
     fileName = (
         "consolidatedOutputData.pkl"
     )
@@ -1127,7 +1164,7 @@ if __name__=="__main__":
         assert metric in ["RMSE","MAE","STD"], "Invalid metric! Must be either 'RMSE', 'MAE', or 'STD'"
 
     if args.consol==True:
-        plot_consolidated_data(args.dur,metrics=metrics)
+        plot_consolidated_data(args.dur,metrics=metrics,includePSD=False)
     else:
         if args.consolALL==True:
             pathName = (
