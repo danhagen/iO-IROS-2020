@@ -831,7 +831,7 @@ class plant_pendulum_1DOF2DOF:
         tAxes = [[ax1,ax2],[ax3,ax4]]
         tendonDeformation = [tendonDeformation1,tendonDeformation2]
         tendonTension = [tendonTension1,tendonTension2]
-        colors = ["C2","C3"]
+        colors = ["C0","C0"]
         for i in range(2):
             tAxes[i][0].plot(np.linspace(-1,0,1001),np.zeros((1001,)),'0.70')
             tAxes[i][0].plot(deformationArray,actualForceLengthCurve,'0.70')
@@ -867,7 +867,7 @@ class plant_pendulum_1DOF2DOF:
         fig = plt.figure()
         ax = plt.gca()
         ax.plot(self.time,X[2,:]*180/np.pi,'C0')
-        ax.plot(self.time,X[4,:]*180/np.pi,'C1')
+        ax.plot(self.time,X[4,:]*180/np.pi,'C0',ls='--')
         ax.set_xlabel("Time (s)")
         ax.set_ylabel("Motor Angles (deg)")
         ax.spines["right"].set_visible(False)
@@ -937,7 +937,7 @@ class plant_pendulum_1DOF2DOF:
                     ),\
                          ("Figure can either be left blank (None) or it must be constructed from data that has the same shape as X.\ntype(Figure) = " + str(type(Figure)) + "\ntype(Figure[0]) = " + str(type(Figure[0])) + "\nFigure[1].shape = " + str(Figure[1].shape) + " instead of (" + str(NumRows) + "," + str(NumColumns) + ")" + "\ntype(Figure[1].flatten()[0]) = " + str(type(Figure[1].flatten()[0])))
         if Figure is None:
-            fig, axes = plt.subplots(NumRows,NumColumns,figsize=(3.5*NumColumns,2*NumRows + 2))
+            fig, axes = plt.subplots(NumRows,NumColumns,figsize=(3.5*NumColumns,2*NumRows + 2),sharex=True)
             plt.subplots_adjust(top=0.85,bottom=0.15,left=0.075,right=0.975)
             plt.suptitle(DescriptiveTitle,Fontsize=20,y=0.975)
             for j in range(NumStates):
@@ -945,8 +945,9 @@ class plant_pendulum_1DOF2DOF:
                 axes[RowNumber[j],ColumnNumber[j]].spines['top'].set_visible(False)
                 axes[RowNumber[j],ColumnNumber[j]].plot(self.time,X[j,:])
                 if not(RowNumber[j] == RowNumber[-1] and ColumnNumber[j]==0):
-                    axes[RowNumber[j],ColumnNumber[j]].set_xticklabels(\
-                                        [""]*len(axes[RowNumber[j],ColumnNumber[j]].get_xticks()))
+                    plt.setp(axes[RowNumber[j],ColumnNumber[j]].get_xticklabels(), visible=False)
+                    # axes[RowNumber[j],ColumnNumber[j]].set_xticklabels(\
+                    #                     [""]*len(axes[RowNumber[j],ColumnNumber[j]].get_xticks()))
                 else:
                     axes[RowNumber[j],ColumnNumber[j]].set_xlabel("Time (s)")
                 axes[RowNumber[j],ColumnNumber[j]].set_title(r"$x_{" + str(j+1) + "}$ "+ Units[j])

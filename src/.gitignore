@@ -1,5 +1,7 @@
 # large experimental trial data
 experimental_trials/*.mat
+experimental_trials/All_Consolidated_Trials_050_GEL_030s_MAX
+experimental_trials/All_Consolidated_Trials_050_GEL_360s_MAX
 
 # temp MATLAB files
 *.asv

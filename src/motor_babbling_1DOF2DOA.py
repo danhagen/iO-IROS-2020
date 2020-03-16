@@ -8,14 +8,16 @@ import scipy.io as sio
 import argparse
 import textwrap
 from scipy import signal
+import seaborn as sns
 
 babblingParams = {
     "Seed" : None,
-    "Filter Length" : 100,
+    "Filter Length" : 200,
     "Pass Probability" : plantParams["dt"]/4,
     "Input Bounds" : [0,10],
-    "Low Cutoff Frequency" : 0,
+    "Low Cutoff Frequency" : 1,
     "High Cutoff Frequency" : 10,
+    "Buttersworth Filter Order" : 9
 }
 
 class motor_babbling_1DOF2DOA:
@@ -51,8 +53,10 @@ class motor_babbling_1DOF2DOA:
         is_number(self.highCutoffFrequency,"High Cutoff Frequency",default=10)
         assert self.lowCutoffFrequency<self.highCutoffFrequency, "The low cutoff frequency for the white noise must be below the high cutoff frequency"
 
-        self.plant = plant
+        self.filterOrder = babblingParams.get("Buttersworth Filter Order",5)
+        is_number(self.filterOrder,"Buttersworth Filter Order",default=5)
 
+        self.plant = plant
     def band_limited_noise(self):
         numberOfSamples = len(self.plant.time)-1
         samplingFrequency = 1/self.plant.dt
@@ -75,25 +79,33 @@ class motor_babbling_1DOF2DOA:
         result = np.fft.ifft(f).real
         # result = result/max([result.max(),-result.min()]))
         return(result)
-
-
-    def plot_signals_and_power_spectrum(self):
+    def plot_signals_power_spectrum_and_amplitude_distribution(self):
         assert hasattr(self,"babblingSignals"), "run generate_babbling_input before plotting the power spectrum."
 
-        fig1=plt.figure(figsize=(5,4))
-        ax1=plt.gca()
-        ax1.plot([self.plant.time[0],self.plant.time[-1]],[self.inputMaximum]*2,'k--')
-        ax1.plot([self.plant.time[0],self.plant.time[-1]],[self.inputMinimum]*2,'k--')
-        ax1.set_ylabel('Babbling Signals (Nm)')
-        ax1.set_ylim([
+        fig1, (ax1a,ax1b) = plt.subplots(2,1,sharex=True,figsize=(5,7))
+        ax1a.plot([self.plant.time[0],self.plant.time[-1]],[self.inputMaximum]*2,'k--',label='_nolegend_')
+        ax1a.plot([self.plant.time[0],self.plant.time[-1]],[self.inputMinimum]*2,'k--',label='_nolegend_')
+        ax1a.set_ylabel('Babbling Input 1 (Nm)')
+        ax1a.set_ylim([
             self.inputMinimum-0.1*self.inputRange,
             self.inputMaximum+0.1*self.inputRange
         ])
-        ax1.set_xlim([self.plant.time[0],self.plant.time[-1]])
-        ax1.set_xticks(np.arange(0,6*self.plant.time[-1]/5,self.plant.time[-1]/5))
-        ax1.set_xlabel('Time (s)')
-        ax1.spines["right"].set_visible(False)
-        ax1.spines["top"].set_visible(False)
+        ax1a.set_xlim([self.plant.time[0],self.plant.time[-1]])
+        plt.setp(ax1a.get_xticklabels(), visible=False)
+        ax1a.spines["right"].set_visible(False)
+        ax1a.spines["top"].set_visible(False)
+
+        ax1b.plot([self.plant.time[0],self.plant.time[-1]],[self.inputMaximum]*2,'k--',label='_nolegend_')
+        ax1b.plot([self.plant.time[0],self.plant.time[-1]],[self.inputMinimum]*2,'k--',label='_nolegend_')
+        ax1b.set_ylabel('Babbling Input 2 (Nm)')
+        ax1b.set_ylim([
+            self.inputMinimum-0.1*self.inputRange,
+            self.inputMaximum+0.1*self.inputRange
+        ])
+        ax1b.set_xlim([self.plant.time[0],self.plant.time[-1]])
+        ax1b.set_xlabel('Time (s)')
+        ax1b.spines["right"].set_visible(False)
+        ax1b.spines["top"].set_visible(False)
 
         fig2 = plt.figure(figsize=(5, 4))
         ax2=plt.gca()
@@ -102,27 +114,92 @@ class motor_babbling_1DOF2DOA:
         plt.ylabel('Power')
         plt.tight_layout()
 
-        if self.babblingSignals.shape ==(len(self.plant.time[:-1]),):
-            numberOfSignals = 1
-        else:
-            numberOfSignals = self.babblingSignals.shape[1]
+        ax1a.plot(
+            self.plant.time[:-1],
+            self.babblingSignals[:,0],
+            "r"
+        )
+        ax1b.plot(
+            self.plant.time[:-1],
+            self.babblingSignals[:,1],
+            "r"
+        )
+        inputLineStyle=[None,'--']
         for i in range(self.babblingSignals.shape[1]):
-            freqs, psd = signal.welch(
+            freqs,psd = signal.welch(
                 self.babblingSignals[:,i],
                 1/self.plant.dt
             )
-            ax1.plot(self.plant.time[:-1],self.babblingSignals[:,i],"C"+str(i))
-            ax2.semilogx(freqs, psd,c="C"+str(i))
+            ax2.semilogx(freqs,psd,c='r',ls=inputLineStyle[i])
 
-        if numberOfSignals!=1:
-            ax1.legend(
-                ["Signal " +str(i+1) for i in range(numberOfSignals)],
-                loc="upper right"
-            )
-            ax2.legend(
-                ["Signal " +str(i+1) for i in range(numberOfSignals)],
-                loc="upper right"
-            )
+        ax2.legend(
+            ["Signal " +str(i+1) for i in range(2)],
+            loc="upper right"
+        )
+
+        fig3, (ax3a,ax3b) = plt.subplots(2,1,figsize=(5,7))
+        ax3a.set_ylabel(r'Power ($(Nm)^2/Hz$)')
+        ax3a.set_xlabel('Babbling Input 1 (Nm)')
+        ax3a.spines["right"].set_visible(False)
+        ax3a.spines["top"].set_visible(False)
+
+        ax3b.set_ylabel(r'Power ($(Nm)^2/Hz$)')
+        ax3b.set_xlabel('Babbling Input 2 (Nm)')
+        ax3b.spines["right"].set_visible(False)
+        ax3b.spines["top"].set_visible(False)
+        sns.distplot(self.babblingSignals[:,0],color='r',ax=ax3a)
+        sns.distplot(self.babblingSignals[:,1],color='r',ax=ax3b)
+
+    def generate_babbling_input_GEL(self):
+        """
+        Returns a babbling signal for 2 channels that either steps to some level of torque inputs (inside the bounds) or is zero.
+        """
+        np.random.seed(self.seed)
+        numberOfSamples = len(self.plant.time)-1
+        self.babblingSignals = np.zeros((numberOfSamples,2))
+
+        self.stepDuration = 0.200 # 200 ms
+        indices = [
+            int(el/self.plant.dt) for el in np.arange(0,self.plant.time[-1]+self.stepDuration,self.stepDuration)
+        ]
+        for i in range(len(indices)-1):
+            stepSize = int(len(self.plant.time[indices[i]:indices[i+1]]))
+            self.babblingSignals[i*stepSize:(i+1)*stepSize,0] = [
+                np.random.uniform(self.inputMinimum,self.inputMaximum)
+            ]*stepSize
+            self.babblingSignals[i*stepSize:(i+1)*stepSize,1] = [
+                np.random.uniform(self.inputMinimum,self.inputMaximum)
+            ]*stepSize
+
+        ### Filter the offset signals
+        # nyq = 0.5 / self.plant.dt
+        # low = self.lowCutoffFrequency/nyq
+        # high = self.highCutoffFrequency/nyq
+        # b, a = signal.butter(self.filterOrder, high, 'low')
+        # self.babblingSignals = signal.filtfilt(b, a, self.babblingSignals.T).T
+        # # b, a = signal.butter(self.filterOrder, [low, high], btype='band')
+        # # self.babblingSignals = signal.filtfilt(
+        # #     b,a,
+        # #     self.babblingSignals.T
+        # # ).T
+        b = np.ones(self.filterLength,)/(self.filterLength) #Finite Impulse Response (FIR) Moving Average (MA) filter with one second filter length
+        a=1
+        self.babblingSignals = signal.filtfilt(
+            b,a,
+            self.babblingSignals.T
+        ).T
+
+        ### Bound the signals
+        for i in range(numberOfSamples):
+            if self.babblingSignals[i,0]<=self.inputMinimum:
+                self.babblingSignals[i,0]=self.inputMinimum
+            elif self.babblingSignals[i,0]>=self.inputMaximum:
+                self.babblingSignals[i,0]=self.inputMaximum
+
+            if self.babblingSignals[i,1]<=self.inputMinimum:
+                self.babblingSignals[i,1]=self.inputMinimum
+            elif self.babblingSignals[i,1]>=self.inputMaximum:
+                self.babblingSignals[i,1]=self.inputMaximum
 
     def generate_babbling_input(self):
         """
@@ -257,7 +334,7 @@ class motor_babbling_1DOF2DOA:
             assert plot==True, "No figures will be generated. Please select plot=True."
 
         ## Generate babbling input
-        self.generate_babbling_input()
+        self.generate_babbling_input_GEL()
 
         ## running the babbling data through the plant
         X_o = self.plant.return_X_o(x1o,self.babblingSignals[0,:])
@@ -275,7 +352,7 @@ class motor_babbling_1DOF2DOA:
 
             self.plant.plot_tendon_tension_deformation_curves(X)
 
-            self.plot_signals_and_power_spectrum()
+            self.plot_signals_power_spectrum_and_amplitude_distribution()
 
             if saveFigures==True:
                 trialPath = save_figures(
@@ -417,7 +494,6 @@ if __name__ == '__main__':
     output = babblingTrial.run_babbling_trial(
         np.pi,
         plot=True,
-        saveFigures=saveFigures,
         saveAsPDF=saveAsPDF,
         returnData=True,
         saveData=saveData,

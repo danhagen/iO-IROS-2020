@@ -15,6 +15,12 @@ ANNParams = {
     "Number of Epochs" : 50,
     "Number of Trials" : 2,
 }
+colors = [
+    "#2A3179", # all
+    "#F4793B", # bio
+    "#8DBDE6", # kinapprox
+    "#A95AA1" # allmotor
+]
 
 def plot_babbling_duration_vs_minimum_performance(directory=None):
     ### get the testing trial directories
@@ -54,7 +60,7 @@ def plot_babbling_duration_vs_minimum_performance(directory=None):
     ax.set_ylabel("Best Performance (RMSE in deg.)")
     for i in range(len(totalPerformanceData.keys())):
         key = list(totalPerformanceData.keys())[i]
-        ax.plot(babblingDurations,totalPerformanceData[key],c="C"+str(i))
+        ax.plot(babblingDurations,totalPerformanceData[key],c=colors[i])
     ax.legend(list(totalPerformanceData.keys()),loc='upper right')
 
 class neural_network:
@@ -92,10 +98,11 @@ class neural_network:
         ax.set_xticks(list(np.linspace(0,self.numberOfEpochs,6)))
         ax.set_xticklabels([int(el) for el in ax.get_xticks()])
 
-        for key in self.groups:
+        for i in range(len(self.groups)):
             ax.plot(
-                np.array(self.ANNOutput[key]["tr"]["epoch"]).T,
-                180*np.sqrt(np.array(self.ANNOutput[key]["tr"]["perf"])).T/np.pi
+                np.array(self.ANNOutput[self.groups[i]]["tr"]["epoch"]).T,
+                180*np.sqrt(np.array(self.ANNOutput[self.groups[i]]["tr"]["perf"])).T/np.pi,
+                c=colors[i]
             )
 
         ax.legend(self.groups,loc='upper right')
@@ -125,7 +132,7 @@ class neural_network:
             ax.plot(
                 epochArray,
                 180*np.sqrt(totalPerformance[key]["avg_perf"])/np.pi,
-                c="C"+str(i),
+                c=colors[i],
                 lw=2
             )
         ax.legend(self.groups,loc='upper right')
@@ -167,14 +174,14 @@ class neural_network:
             _,_,_ = ax1.hist(
                 data,
                 bins=bins,
-                color="C"+str(i),
+                color=colors[i],
                 weights=np.ones(len(data)) / len(data),
                 alpha=0.5
             )
             _,_,_ = axs[i+1].hist(
                 data,
                 bins=bins,
-                color="C"+str(i),
+                color=colors[i],
                 weights=np.ones(len(data)) / len(data),
                 alpha=0.5
             )
@@ -184,7 +191,7 @@ class neural_network:
             axs[i+1].set_title(
                 self.groups[i],
                 fontsize=14,
-                color="C"+str(i),
+                color=colors[i],
                 y=0.65,
                 x=0.65
             )
@@ -299,7 +306,7 @@ class neural_network:
             )
 
             self.ANNOutput,experimentalData = \
-                ANNOutput['train'],ANNOutput['test']
+                ANNOutput['babbling'],ANNOutput['experiment'] # in rads.
 
             fullEpochs = np.all(
                 [
@@ -317,6 +324,7 @@ class neural_network:
                 count +=1
                 print("Early Termination, Trying again... " + str(count))
                 shutil.rmtree(self.trialPath)
+                plt.close('all')
 
         fig1 = self.plot_performance(returnFig=True)
 
