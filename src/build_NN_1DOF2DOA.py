@@ -306,7 +306,7 @@ class neural_network:
             )
 
             self.ANNOutput,experimentalData = \
-                ANNOutput['train'],ANNOutput['test']
+                ANNOutput['babbling'],ANNOutput['experiment'] # in rads.
 
             fullEpochs = np.all(
                 [
@@ -324,6 +324,7 @@ class neural_network:
                 count +=1
                 print("Early Termination, Trying again... " + str(count))
                 shutil.rmtree(self.trialPath)
+                plt.close('all')
 
         fig1 = self.plot_performance(returnFig=True)
 
