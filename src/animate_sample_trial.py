@@ -79,7 +79,7 @@ def plot_experimental_data(experimentalData,returnFigs=True):
             (
                 180/np.pi
                 *np.array(
-                    experimentalData['all'][subkeys[i]]["expected_out"]
+                    experimentalData['all'][subkeys[i]]["expectedJointAngle"]
                 ).T
             ),
             c='0.70',
@@ -99,7 +99,7 @@ def plot_experimental_data(experimentalData,returnFigs=True):
                 (
                     180/np.pi
                     * np.array(
-                        experimentalData[key][subkeys[i]]["predicted_out"]
+                        experimentalData[key][subkeys[i]]["predictedJointAngle"]
                     ).T
                 ),
                 c=colors[index]
@@ -109,7 +109,7 @@ def plot_experimental_data(experimentalData,returnFigs=True):
                 (
                     180/np.pi
                     * np.array(
-                        experimentalData[key][subkeys[i]]["test_error"]
+                        experimentalData[key][subkeys[i]]["rawError"]
                     ).T
                 ),
                 c=colors[index]
@@ -167,15 +167,15 @@ def plot_bar_plots(outputData,metric="MAE",returnFig=True):
     if metric == "MAE":
         baseTitle = "Bar Plots of MAE by Movement Type"
         ylabel = "Mean Absolute Error (deg.)"
-        valueKey = "test_MAE"
+        valueKey = "experimentMAE"
     elif metric == 'STD':
         baseTitle = "Bar Plots of Error Std Dev by Movement Type"
         ylabel = "Error Standard Deviation (deg.)"
-        valueKey = "test_STD"
+        valueKey = "experimentSTD"
     elif metric == 'RMSE':
         baseTitle = "Bar Plots of RMSE by Movement Type"
         ylabel = "Root Mean Squared Error (deg.)"
-        valueKey = "test_RMSE"
+        valueKey = "experimentRMSE"
 
     labels = [
         "Sinusoidal Angle \n Sinusoidal Stiffness",
@@ -669,14 +669,14 @@ def plot_all_polar_bar_plots(outputData,metric,returnFigs=True):
         )[0][0]
         jointAngleArrays = np.concatenate(
             [
-                outputData[key][subkey]['expected_out'].flatten()[np.newaxis,:]
+                outputData[key][subkey]['expectedJointAngle'].flatten()[np.newaxis,:]
                 for subkey in groups
             ],
             axis=0
         ) # in radians
         errorArrays = np.concatenate(
             [
-                outputData[key][subkey]['test_error'].flatten()[np.newaxis,:]
+                outputData[key][subkey]['rawError'].flatten()[np.newaxis,:]
                 for subkey in groups
             ],
             axis=0
@@ -721,7 +721,7 @@ def plot_all_error_distributions(outputData,returnFigs=True):
         tempFig, axs = plt.subplots(2,2,figsize=(10,10))
         plt.suptitle(labels[index],fontsize=16)
         for i in range(len(groups)):
-            data = 180*outputData[key][groups[i]]['test_error'].flatten()/np.pi
+            data = 180*outputData[key][groups[i]]['rawError'].flatten()/np.pi
             axs[int(i/2)][i%2].hist(
                 data,
                 weights=np.ones(len(data)) / len(data),
@@ -1055,21 +1055,21 @@ if __name__=="__main__":
         maximumError = 180/np.pi*max([
             max(
                 X[0,:]
-                - experimentalData[movementTypePrefixes[i][:-1]][group]['predicted_out'][startIndex:endIndex]
+                - experimentalData[movementTypePrefixes[i][:-1]][group]['predictedJointAngle'][startIndex:endIndex]
             )
             for group in groups
         ])
         minimumError = 180/np.pi*min([
             min(
                 X[0,:]
-                - experimentalData[movementTypePrefixes[i][:-1]][group]['predicted_out'][startIndex:endIndex]
+                - experimentalData[movementTypePrefixes[i][:-1]][group]['predictedJointAngle'][startIndex:endIndex]
             )
             for group in groups
         ])
         errorBounds = [minimumError,maximumError]
         for j in range(4):
-            desiredAngle = experimentalData[movementTypePrefixes[i][:-1]][groups[j]]['expected_out'][startIndex:endIndex]
-            predictedAngle = experimentalData[movementTypePrefixes[i][:-1]][groups[j]]['predicted_out'][startIndex:endIndex]
+            desiredAngle = experimentalData[movementTypePrefixes[i][:-1]][groups[j]]['expectedJointAngle'][startIndex:endIndex]
+            predictedAngle = experimentalData[movementTypePrefixes[i][:-1]][groups[j]]['predictedJointAngle'][startIndex:endIndex]
 
             ani = animate_pendulum_ANN(
                 Time,X,U,
