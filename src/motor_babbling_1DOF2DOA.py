@@ -1,9 +1,8 @@
 from plant import plant_pendulum_1DOF2DOF
 from save_params import *
 from plantParams import *
-from animate import *
+from animate_babbling import *
 from danpy.useful_functions import is_number, save_figures
-from animate import animate_pendulum
 import scipy.io as sio
 import argparse
 import textwrap
@@ -14,7 +13,7 @@ babblingParams = {
     "Seed" : None,
     "Filter Length" : 200,
     "Pass Probability" : plantParams["dt"]/4,
-    "Input Bounds" : [0,20],
+    "Input Bounds" : [0,10],
     "Low Cutoff Frequency" : 1,
     "High Cutoff Frequency" : 10,
     "Buttersworth Filter Order" : 9,
@@ -511,20 +510,17 @@ if __name__ == '__main__':
     )
 
     if animate==True:
-        downsamplingFactor = int(0.3/plantParams["dt"])
+        downsamplingFactor = 10
         time = output["time"]
         X = output["X"]
         U = output["U"]
-        Y = np.array([
-            X[0,:],
-            np.array(list(map(lambda X: plant.hs(X),X.T)))
-        ])
-        ani = animate_pendulum(
-            time[::downsamplingFactor],
-            X[:,::downsamplingFactor],
-            U[:,::downsamplingFactor],
-            Y[:,::downsamplingFactor],
-            Y[:,::downsamplingFactor],
+        # Y = np.array([
+        #     X[0,:],
+        #     np.array(list(map(lambda X: plant.hs(X),X.T)))
+        # ])
+        ani = animate_pendulum_babbling(
+            time,X,U,
+            downsamplingFactor,
             **plantParams
         )
         ani.start(downsamplingFactor)
