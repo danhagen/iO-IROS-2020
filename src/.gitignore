@@ -2,6 +2,10 @@
 experimental_trials/*.mat
 experimental_trials/All_Consolidated_Trials_050_GEL_030s_MAX
 experimental_trials/All_Consolidated_Trials_050_GEL_360s_MAX
+experimental_trials/GEL_babbling_005s_Good
+experimental_trials/GEL_babbling_005s_Poor
+experimental_trials/Step_babbling_150s_Good
+experimental_trials/Step_babbling_150s_Poor
 
 # temp MATLAB files
 *.asv
