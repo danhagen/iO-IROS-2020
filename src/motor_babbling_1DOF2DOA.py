@@ -14,7 +14,7 @@ babblingParams = {
     "Seed" : None,
     "Filter Length" : 200,
     "Pass Probability" : plantParams["dt"]/4,
-    "Input Bounds" : [0,10],
+    "Input Bounds" : [0,20],
     "Low Cutoff Frequency" : 1,
     "High Cutoff Frequency" : 10,
     "Buttersworth Filter Order" : 9,
