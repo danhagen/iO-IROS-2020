@@ -904,6 +904,7 @@ class plant_pendulum_1DOF2DOF:
 
         NumStates = np.shape(X)[0]
         X[:6,:] = 180*X[:6,:]/np.pi # converting to deg and deg/s
+        X[0,:] -= 180 # centering joint angle at 0 deg.
         if NumStates == 6:
             NumColumns = 2
             NumRows = 3
@@ -961,11 +962,73 @@ class plant_pendulum_1DOF2DOF:
                     axes[RowNumber[i],ColumnNumber[i]].plot(self.time,X[i,:])
                 else:
                     axes[ColumnNumber[i]].plot(self.time,X[i,:])
-        X[:6,:] = np.pi*X[:6,:]/180
+        X[0,:] += 180 # returning to original frame
+        X[:6,:] = np.pi*X[:6,:]/180 # returning to radians
         if Return == True:
             return((fig,axes))
         else:
             plt.show()
+
+    def plot_joint_angle_power_spectrum_and_distribution(self,X,**kwargs):
+        fig1 = plt.figure(figsize=(7, 5))
+        ax1=plt.gca()
+        plt.title('PSD: Power Spectral Density')
+        plt.xlabel('Frequency')
+        plt.ylabel('Power')
+
+        freqs,psd = signal.welch(
+            X[0,:],
+            1/self.dt
+        )
+        ax1.semilogx(freqs,psd,c='C0')
+
+        fig2 = plt.figure(figsize=(7,5))
+        ax2 = plt.gca()
+        ax2.set_ylabel("Percentage",fontsize=14)
+        ax2.set_xlabel('Joint Angle (deg.)',fontsize=14)
+        ax2.spines["right"].set_visible(False)
+        ax2.spines["top"].set_visible(False)
+
+        X[0,:] -= np.pi # shifting vertical position to 0 rad.
+        hist,bin_edges=np.histogram(X[0,:],bins=48)
+        percentNearBoundaries = (hist[0]+hist[-1])/len(X[0,:])*100 # percent within 180/48 = 3.75 deg of the boundaries.
+        _,_,_ = ax2.hist(
+            x=X[0,:]*(180/np.pi),
+            bins=12,
+            color='C0',
+            alpha=0.7,
+            weights=np.ones(len(X[0,:]*(180/np.pi))) / len(X[0,:]*(180/np.pi))
+        )
+        _,yMax = ax2.get_ylim()
+        ax2.text(
+            0,0.9*yMax,
+            "{:.2f}".format(percentNearBoundaries) + "%" + " of Data\n" + r"$<3.75^\circ$ from Boundaries",
+            fontsize=14,
+            wrap=True,
+            horizontalalignment='center',
+            verticalalignment='center',
+            color = "C0",
+            bbox=dict(
+                boxstyle='round',
+                facecolor='C0',
+                lw=0,
+                alpha=0.2
+            )
+        )
+        # sns.distplot(
+        #     X[0,:]*(180/np.pi),
+        #     hist=True,
+        #     kde=False,
+        #     hist_kws = {
+        #         'weights':np.ones(len(X[0,:]*(180/np.pi))) / len(X[0,:]*(180/np.pi))
+        #     },
+        #     color='C0',
+        #     ax=ax2
+        # )
+        ax2.set_xticks([-90,-45,0,45,90])
+        ax2.set_xticklabels([str(int(tick))+r"$^\circ$" for tick in ax2.get_xticks()])
+        ax2.yaxis.set_major_formatter(matplotlib.ticker.PercentFormatter(xmax=1))
+        X[0,:] += np.pi # shifting back
 
     def save_data(self,X,U,additionalDict=None,path=None):
         fT1 = np.array(list(map(self.tendon_1_FL_func,X.T)))
