@@ -110,8 +110,8 @@ class motor_babbling_1DOF2DOA:
         fig2 = plt.figure(figsize=(5, 4))
         ax2=plt.gca()
         plt.title('PSD: power spectral density')
-        plt.xlabel('Frequency')
-        plt.ylabel('Power')
+        plt.xlabel('Frequency (Hz)')
+        plt.ylabel(r'Power ($(Nm)^2/Hz$)')
         plt.tight_layout()
 
         ax1a.plot(
@@ -138,17 +138,17 @@ class motor_babbling_1DOF2DOA:
         )
 
         fig3, (ax3a,ax3b) = plt.subplots(2,1,figsize=(5,7))
-        ax3a.set_ylabel(r'Power ($(Nm)^2/Hz$)')
+        ax3a.set_ylabel('Percentage')
         ax3a.set_xlabel('Babbling Input 1 (Nm)')
         ax3a.spines["right"].set_visible(False)
         ax3a.spines["top"].set_visible(False)
 
-        ax3b.set_ylabel(r'Power ($(Nm)^2/Hz$)')
+        ax3b.set_ylabel('Percentage')
         ax3b.set_xlabel('Babbling Input 2 (Nm)')
         ax3b.spines["right"].set_visible(False)
         ax3b.spines["top"].set_visible(False)
-        sns.distplot(self.babblingSignals[:,0],color='r',ax=ax3a)
-        sns.distplot(self.babblingSignals[:,1],color='r',ax=ax3b)
+        sns.distplot(self.babblingSignals[:,0],hist=True,color='r',ax=ax3a)
+        sns.distplot(self.babblingSignals[:,1],hist=True,color='r',ax=ax3b)
 
     def generate_babbling_input_GEL(self):
         """
@@ -334,7 +334,7 @@ class motor_babbling_1DOF2DOA:
             assert plot==True, "No figures will be generated. Please select plot=True."
 
         ## Generate babbling input
-        self.generate_babbling_input_GEL()
+        self.generate_babbling_input()
 
         ## running the babbling data through the plant
         X_o = self.plant.return_X_o(x1o,self.babblingSignals[0,:])
@@ -349,6 +349,8 @@ class motor_babbling_1DOF2DOA:
         output = {}
         if plot==True:
             self.plant.plot_states(X)
+
+            self.plant.plot_joint_angle_power_spectrum_and_distribution(X)
 
             self.plant.plot_tendon_tension_deformation_curves(X)
 
