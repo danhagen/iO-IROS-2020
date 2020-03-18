@@ -17,7 +17,8 @@ babblingParams = {
     "Input Bounds" : [0,10],
     "Low Cutoff Frequency" : 1,
     "High Cutoff Frequency" : 10,
-    "Buttersworth Filter Order" : 9
+    "Buttersworth Filter Order" : 9,
+    "Babbling Type" : 'continuous' # ['continuous','step']
 }
 
 class motor_babbling_1DOF2DOA:
@@ -56,6 +57,9 @@ class motor_babbling_1DOF2DOA:
         self.filterOrder = babblingParams.get("Buttersworth Filter Order",5)
         is_number(self.filterOrder,"Buttersworth Filter Order",default=5)
 
+        self.babblingType = babblingParams.get("Babbling Type",'continuous')
+        assert self.babblingType in ['continuous','step'], "babblingType must be either 'continuous' (default) or 'step'."
+
         self.plant = plant
     def band_limited_noise(self):
         numberOfSamples = len(self.plant.time)-1
@@ -80,7 +84,7 @@ class motor_babbling_1DOF2DOA:
         # result = result/max([result.max(),-result.min()]))
         return(result)
     def plot_signals_power_spectrum_and_amplitude_distribution(self):
-        assert hasattr(self,"babblingSignals"), "run generate_babbling_input before plotting the power spectrum."
+        assert hasattr(self,"babblingSignals"), "run generate_step_babbling_input or generate_continuous_babbling_input before plotting the power spectrum."
 
         fig1, (ax1a,ax1b) = plt.subplots(2,1,sharex=True,figsize=(5,7))
         ax1a.plot([self.plant.time[0],self.plant.time[-1]],[self.inputMaximum]*2,'k--',label='_nolegend_')
@@ -150,7 +154,7 @@ class motor_babbling_1DOF2DOA:
         sns.distplot(self.babblingSignals[:,0],hist=True,color='r',ax=ax3a)
         sns.distplot(self.babblingSignals[:,1],hist=True,color='r',ax=ax3b)
 
-    def generate_babbling_input_GEL(self):
+    def generate_continuous_babbling_input(self):
         """
         Returns a babbling signal for 2 channels that either steps to some level of torque inputs (inside the bounds) or is zero.
         """
@@ -201,7 +205,7 @@ class motor_babbling_1DOF2DOA:
             elif self.babblingSignals[i,1]>=self.inputMaximum:
                 self.babblingSignals[i,1]=self.inputMaximum
 
-    def generate_babbling_input(self):
+    def generate_step_babbling_input(self):
         """
         Returns a babbling signal for 2 channels that either steps to some level of torque inputs (inside the bounds) or is zero.
         """
@@ -325,6 +329,7 @@ class motor_babbling_1DOF2DOA:
             saveData=False,
             saveParams=False
         ):
+
         is_number(
             x1o,"Initial Joint Angle",
             notes="Should be between 0 and 2 pi."
@@ -334,7 +339,10 @@ class motor_babbling_1DOF2DOA:
             assert plot==True, "No figures will be generated. Please select plot=True."
 
         ## Generate babbling input
-        self.generate_babbling_input()
+        if self.babblingType=='continuous':
+            self.generate_continuous_babbling_input()
+        else: #self.babblingType=='step'
+            self.generate_step_babbling_input()
 
         ## running the babbling data through the plant
         X_o = self.plant.return_X_o(x1o,self.babblingSignals[0,:])
