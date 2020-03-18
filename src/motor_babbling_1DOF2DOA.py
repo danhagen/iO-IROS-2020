@@ -11,19 +11,22 @@ import seaborn as sns
 
 babblingParams = {
     "Seed" : None,
-    "Filter Length" : 200,
+    "Filter Length" : 50,
     "Pass Probability" : plantParams["dt"]/4,
     "Input Bounds" : [0,10],
     "Low Cutoff Frequency" : 1,
     "High Cutoff Frequency" : 10,
     "Buttersworth Filter Order" : 9,
-    "Babbling Type" : 'continuous' # ['continuous','step']
+    "Babbling Type" : 'continuous', # ['continuous','step']
+    "Force Cocontraction" : True,
+    "Cocontraction Standard Deviation" : 2
 }
 
 class motor_babbling_1DOF2DOA:
     def __init__(self,plant,babblingParams):
         self.totalParams = plant.params
         self.totalParams.update(babblingParams)
+        self.plant = plant
 
         self.seed = babblingParams.get("Seed",None)
         if self.seed is not None:
@@ -58,8 +61,21 @@ class motor_babbling_1DOF2DOA:
 
         self.babblingType = babblingParams.get("Babbling Type",'continuous')
         assert self.babblingType in ['continuous','step'], "babblingType must be either 'continuous' (default) or 'step'."
+        if self.babblingType == 'continuous':
+            '''
+            filterLength should be equal to the length of each random number so that the moving average peaks at the random number when exactly in the middle of the phase.
 
-        self.plant = plant
+            Each phase should be "one over half of the maximum frequency" seconds long to ensure that the maximum frequency would occur with two phases.
+            '''
+            self.filterLength = int(1/self.highCutoffFrequency/2/self.plant.dt)
+            assert type(babblingParams.get("Force Cocontraction",False))==bool, "'Force Cocontraction' should be either True or False (default)."
+            if babblingParams.get("Force Cocontraction",False)==True:
+                self.cocontraction = True
+                self.cocontractionSTD = babblingParams.get("Cocontraction Standard Deviation",1)
+                is_number(self.cocontractionSTD,"Cocontraction Standard Deviation",default=1)
+            else:
+                self.cocontraction = False
+
     def band_limited_noise(self):
         numberOfSamples = len(self.plant.time)-1
         samplingFrequency = 1/self.plant.dt
@@ -161,18 +177,41 @@ class motor_babbling_1DOF2DOA:
         numberOfSamples = len(self.plant.time)-1
         self.babblingSignals = np.zeros((numberOfSamples,2))
 
-        self.stepDuration = 0.200 # 200 ms
+        self.stepDuration = 1/self.highCutoffFrequency/2 # 50 ms
         indices = [
             int(el/self.plant.dt) for el in np.arange(0,self.plant.time[-1]+self.stepDuration,self.stepDuration)
         ]
-        for i in range(len(indices)-1):
-            stepSize = int(len(self.plant.time[indices[i]:indices[i+1]]))
-            self.babblingSignals[i*stepSize:(i+1)*stepSize,0] = [
-                np.random.uniform(self.inputMinimum,self.inputMaximum)
-            ]*stepSize
-            self.babblingSignals[i*stepSize:(i+1)*stepSize,1] = [
-                np.random.uniform(self.inputMinimum,self.inputMaximum)
-            ]*stepSize
+        if self.cocontraction==False:
+            for i in range(len(indices)-1):
+                stepSize = int(len(self.plant.time[indices[i]:indices[i+1]]))
+                self.babblingSignals[i*stepSize:(i+1)*stepSize,0] = [
+                    np.random.uniform(self.inputMinimum,self.inputMaximum)
+                ]*stepSize
+                self.babblingSignals[i*stepSize:(i+1)*stepSize,1] = [
+                    np.random.uniform(self.inputMinimum,self.inputMaximum)
+                ]*stepSize
+        else: #self.cocontraction==True
+            for i in range(len(indices)-1):
+                stepSize = int(len(self.plant.time[indices[i]:indices[i+1]]))
+                u1_rand = np.random.uniform(
+                    self.inputMinimum,
+                    self.inputMaximum
+                )
+                u2_rand = np.random.normal(
+                    u1_rand,
+                    self.cocontractionSTD
+                )
+                if u2_rand<=self.inputMinimum:
+                    u2_rand=self.inputMinimum
+                elif u2_rand>=self.inputMaximum:
+                    u2_rand=self.inputMaximum
+
+                self.babblingSignals[i*stepSize:(i+1)*stepSize,0] = [
+                    u1_rand
+                ]*stepSize
+                self.babblingSignals[i*stepSize:(i+1)*stepSize,1] = [
+                    u2_rand
+                ]*stepSize
 
         ### Filter the offset signals
         # nyq = 0.5 / self.plant.dt
