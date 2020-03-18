@@ -956,11 +956,17 @@ if __name__=="__main__":
         metadata=dict(artist='Daniel A. Hagen'),
         bitrate=1800
     )
-    startIndex = int(15/plantParams["dt"])
-    endIndex = int(25/plantParams["dt"])+1
-    Time = babblingData['time'][startIndex:endIndex]
-    X = babblingData['X'][:,startIndex:endIndex]
-    U = babblingData['U'][:,startIndex:endIndex]
+    if args.dur<=10:
+        Time = babblingData['time']
+        X = babblingData['X']
+        U = babblingData['U']
+    else:
+        startIndex = int(15/plantParams["dt"])
+        endIndex = int(25/plantParams["dt"])+1
+        Time = babblingData['time'][startIndex:endIndex]
+        X = babblingData['X'][:,startIndex:endIndex]
+        U = babblingData['U'][:,startIndex:endIndex]
+
     ani = animate_pendulum_babbling(
         Time,X,U,
         downsamplingFactor,
