@@ -2,6 +2,8 @@ from test_NN_1DOF2DOA import *
 import matplotlib
 matplotlib.rcParams['pdf.fonttype'] = 42
 matplotlib.rcParams['ps.fonttype'] = 42
+from twilio.rest import Client
+from datetime import datetime
 
 basePath = "experimental_trials/"
 for fileNameBase in [
@@ -15,7 +17,7 @@ for fileNameBase in [
 if __name__=='__main__':
     ### ANN parameters
     ANNParams = {
-        "Number of Layers" : 15,
+        "Number of Nodes" : 15,
         "Number of Epochs" : 50,
         "Number of Trials" : 50,
     }
@@ -49,10 +51,10 @@ if __name__=='__main__':
         default=ANNParams["Number of Epochs"]
     )
     parser.add_argument(
-        '-layers',
+        '-nodes',
         type=int,
-        help='Number of layers for each network to train (single hidden layer). Default is given by ANNParams.',
-        default=ANNParams["Number of Layers"]
+        help='Number of Nodes for each network to train (single hidden layer). Default is given by ANNParams.',
+        default=ANNParams["Number of Nodes"]
     )
     parser.add_argument(
         '-trials',
@@ -67,6 +69,12 @@ if __name__=='__main__':
         default=['RMSE'],
         help="Metrics to be compared. Should be either MAE, RMSE, or STD. Default is MAE."
     )
+    parser.add_argument(
+        '-babType',
+        type=str,
+        default='continuous',
+        help="Type of motor babbling. Can be either 'continuous' or 'step'."
+    )
     args = parser.parse_args()
     if type(args.metrics)==str:
         metrics = [args.metrics]
@@ -75,8 +83,12 @@ if __name__=='__main__':
     for metric in metrics:
         assert metric in ["RMSE","MAE","STD"], "Invalid metric! Must be either 'RMSE', 'MAE', or 'STD'"
 
+    assert args.babType in ['continuous','step'], "babType must be either 'continuous' (default) or 'step'."
+    babblingParams['Babbling Type'] = args.babType
+    ANNParams["Number of Nodes"] = args.nodes
+
     # babblingDurations = list(np.arange(30,360+1,15))
-    babblingDurations = list(np.arange(1,30+1,1))
+    babblingDurations = list(np.arange(1,10+1,1))
     numberOfTrials = args.trials
     groupNames = [
         "all",
@@ -92,6 +104,7 @@ if __name__=='__main__':
         "angleStep_stiffStep"
     ]
 
+    totalStartTime = time.time()
     for dur in babblingDurations:
         startTime = time.time()
         trialStartTime = startTime
@@ -184,7 +197,7 @@ if __name__=='__main__':
             print('Run Time: ' + runTime + " " + trialRunTime + "\n")
 
         print("Consolidating Data from " + str(dur) + "s Babbling Trials...")
-        plot_consolidated_data(dur,metrics=args.metrics)
+        plot_consolidated_data_babbling_duration_experiment(dur,metrics=args.metrics)
 
     pathName = (
         'experimental_trials/'
@@ -192,6 +205,9 @@ if __name__=='__main__':
     folderName = (
         'All_Consolidated_Trials_'
         + '{:03d}'.format(int(args.trials))
+        + '_Trials_' + babblingParams["Babbling Type"].capitalize()
+        + '_Babbling_'
+        + '{:03d}'.format(int(args.nodes)) + "_Nodes"
         + '/'
     )
     print("Plotting all data!")
@@ -205,3 +221,29 @@ if __name__=='__main__':
             saveAsPDF=True
         )
         plt.close('all')
+
+    runTime = time.time()-totalStartTime
+    seconds = runTime % (24 * 3600)
+    hour = seconds // 3600
+    seconds %= 3600
+    minutes = seconds // 60
+    seconds %= 60
+    runTime = "%d:%02d:%02d" % (hour, minutes, seconds)
+
+    if path.exists("slack_functions.py"):
+        from slack_functions import *
+        message = (
+            '\n'
+            + 'Total Run Time: ' + runTime + '\n\n'
+            + '```params = {\n'
+            + '\t"Number of Trials" : ' + str(args.trials) + ',\n'
+            + '\t"Number of Nodes" : ' + str(args.nodes) + ',\n'
+            + '\t"Babbling Type" : "' + args.babType + '"\n'
+            + '}```'
+        )
+        progress_report_to_slack(
+            __file__,
+            message
+        )
+
+    print("Total Run Time: " + runTime)
