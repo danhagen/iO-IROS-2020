@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
+import seaborn as sns
 from danpy.sb import dsb
 from danpy.useful_functions import save_figures,is_number
 from scipy import signal
@@ -12,11 +13,11 @@ import textwrap
 from animate import *
 import scipy.io as sio
 
-def LP_filt(filter_length, x):
+def LP_filt(filterLength, x):
     """
     Finite Impulse Response (FIR) Moving Average (MA) Low-Pass Filter
     """
-    b=np.ones(filter_length,)/(filter_length) #Finite Impulse Response (FIR) Moving Average (MA) filter with one second filter length
+    b=np.ones(filterLength,)/(filterLength) #Finite Impulse Response (FIR) Moving Average (MA) filter with one second filter length
     a=1
     y = signal.filtfilt(b, a, x)
     return y
@@ -618,6 +619,573 @@ class plant_pendulum_1DOF2DOF:
             )
         )
 
+    def plot_desired_trajectory_distribution_and_power_spectrum(
+        self,
+        trajectory
+        ):
+
+        fig1, (ax1a,ax1b) = plt.subplots(2,1,sharex=True,figsize=(5,7))
+        time = np.array(list(range(len(trajectory[0,:]))))*self.dt
+        ax1a.plot(
+            [time[0],time[-1]],
+            [(180/np.pi)*self.jointAngleBounds["LB"]]*2,
+            'k--',
+            label='_nolegend_'
+        )
+        ax1a.plot(
+            [time[0],time[-1]],
+            [(180/np.pi)*self.jointAngleBounds["UB"]]*2,
+            'k--',
+            label='_nolegend_'
+        )
+        ax1a.set_ylabel('Joint Angle (deg.)')
+        ax1a.set_ylim([
+            (180/np.pi)*(self.jointAngleBounds["LB"]-0.1*self.jointAngleRange),
+            (180/np.pi)*(self.jointAngleBounds["UB"]+0.1*self.jointAngleRange)
+        ])
+        ax1a.set_xlim([time[0],time[-1]])
+        plt.setp(ax1a.get_xticklabels(), visible=False)
+        ax1a.spines["right"].set_visible(False)
+        ax1a.spines["top"].set_visible(False)
+
+        ax1b.plot(
+            [time[0],time[-1]],
+            [self.jointStiffnessBounds["LB"]]*2,
+            'k--',
+            label='_nolegend_'
+        )
+        ax1b.plot(
+            [time[0],time[-1]],
+            [self.jointStiffnessBounds["UB"]]*2,
+            'k--',
+            label='_nolegend_'
+        )
+        ax1b.set_ylabel('Joint Stiffness (Nm/rad)')
+        ax1b.set_ylim([
+            self.jointStiffnessBounds["LB"] - 0.1*self.jointStiffnessRange,
+            self.jointStiffnessBounds["UB"] + 0.1*self.jointStiffnessRange
+        ])
+        ax1b.set_xlim([time[0],time[-1]])
+        ax1b.set_xlabel('Time (s)')
+        ax1b.spines["right"].set_visible(False)
+        ax1b.spines["top"].set_visible(False)
+
+        ax1a.plot(
+            time,
+            (180/np.pi)*trajectory[0,:],
+            "C0"
+        )
+        ax1b.plot(
+            time,
+            trajectory[1,:],
+            "C1"
+        )
+
+        fig2 = plt.figure(figsize=(5, 4))
+        ax2=plt.gca()
+        plt.title('PSD: power spectral density')
+        plt.xlabel('Frequency (Hz)')
+        plt.ylabel(r'Power')
+        plt.tight_layout()
+
+        angle_freqs,angle_psd = signal.welch(
+            (180/np.pi)*trajectory[0,:],
+            1/self.dt
+        )
+        ax2.semilogx(angle_freqs,angle_psd,c='C0')
+
+        stiffness_freqs,stiffness_psd = signal.welch(
+            trajectory[1,:],
+            1/self.dt
+        )
+        ax2.semilogx(stiffness_freqs,stiffness_psd,c='C1')
+
+        ax2.legend(
+            ["Joint Angle","Joint Stiffness"],
+            loc="upper right"
+        )
+
+        fig3, (ax3a,ax3b) = plt.subplots(2,1,figsize=(9,7))
+        ax3a.set_ylabel('Percentage')
+        ax3a.set_xlabel('Joint Angle (deg.)')
+        ax3a.set_xticks(list(np.arange(90,270+1,15)))
+        ax3a.spines["right"].set_visible(False)
+        ax3a.spines["top"].set_visible(False)
+
+        ax3b.set_ylabel('Percentage')
+        ax3b.set_xlabel('Joint Stiffness (Nm/rad)')
+        ax3b.spines["right"].set_visible(False)
+        ax3b.spines["top"].set_visible(False)
+        sns.distplot(
+            (180/np.pi)*trajectory[0,:],
+            hist=False,
+            color="C0",
+            ax=ax3a
+        )
+        sns.distplot(
+            (180/np.pi)*trajectory[0,:],
+            bins=ax3a.get_xticks(),
+            hist=True,
+            kde=False,
+            color="C0",
+            hist_kws={
+                'weights': np.ones(len(trajectory[0,:]))/len(trajectory[0,:])
+            },
+            ax=ax3a
+        )
+        sns.distplot(
+            trajectory[1,:],
+            hist=False,
+            color="C1",
+            ax=ax3b
+        )
+        sns.distplot(
+            trajectory[1,:],
+            bins=len(ax3a.get_xticks()),
+            hist=True,
+            kde=False,
+            color="C1",
+            hist_kws={
+                'weights': np.ones(len(trajectory[1,:]))/len(trajectory[1,:])
+            },
+            ax=ax3b
+        )
+        ax3a.set_yticklabels(["{:.1f}%".format(100*el) for el in ax3a.get_yticks()])
+        ax3b.set_yticklabels(["{:.1f}%".format(100*el) for el in ax3b.get_yticks()])
+
+    def generate_desired_trajectory_SIN_SIN(
+            self,
+            delay=0.3,
+            freqRange=[1,5],
+            angleRange=None,
+            stiffnessRange=None
+        ):
+        assert (type(freqRange)==list
+                and len(freqRange)==2
+                and freqRange[1]>freqRange[0]), \
+            "freqRange must be a list of length 2 in ascending order."
+        if angleRange is not None:
+            assert (type(angleRange)==list
+                    and len(angleRange)==2
+                    and angleRange[1]>angleRange[0]), \
+                "angleRange must be a list of length 2 in ascending order."
+        else:
+            angleRange = [
+                self.jointAngleBounds["LB"],
+                self.jointAngleBounds["UB"]
+            ]
+        if stiffnessRange is not None:
+            assert (type(stiffnessRange)==list
+                    and len(stiffnessRange)==2
+                    and stiffnessRange[1]>stiffnessRange[0]), \
+                "stiffnessRange must be a list of length 2 in ascending order."
+        else:
+            stiffnessRange = [
+                self.jointStiffnessBounds["LB"],
+                self.jointStiffnessBounds["UB"]
+            ]
+
+
+        startValue = np.array([[
+            self.jointAngleMidPoint,
+            self.jointStiffnessBounds["LB"]
+        ]])
+
+        # Sweep across frequencies, 10 cycles per frequency.
+        frequencyValues = np.arange(freqRange[0],freqRange[1]+1e-1,1)
+        cycleDurations = [10/freq for freq in frequencyValues]
+        cycleDurations.insert(0,delay)
+        tempTime = np.arange(0,sum(cycleDurations)+1e-7,self.dt)
+        stepChanges = np.cumsum([int(el/self.dt) for el in cycleDurations])
+        delays = np.ones(np.shape(tempTime[stepChanges[0]:]))
+        frequencies = np.ones(np.shape(tempTime[stepChanges[0]:]))
+        for i in range(len(frequencyValues)):
+            start = stepChanges[i] - stepChanges[0]
+            if i==len(frequencyValues)-1:
+                frequencies[start:] *= frequencyValues[i]
+                delays[start:] *= stepChanges[i]*self.dt
+            else:
+                end = stepChanges[i+1] - stepChanges[0]
+                frequencies[start:end] *= frequencyValues[i]
+                delays[start:end] *= stepChanges[i]*self.dt
+
+        ##  Sinusoidal Joint Angle
+        angleAmplitude = (angleRange[1] - angleRange[0])/2
+        angleOffset = (angleRange[1] + angleRange[0])/2
+        sinusoidal_angle_func = lambda t,freq,delay:(
+            angleAmplitude*np.sin(
+                2*np.pi*freq
+                * (t-delay)
+            )
+            + angleOffset
+        )
+
+        ##  Sinusoidal Joint Stiffness
+        stiffnessAmplitude = (stiffnessRange[1] - stiffnessRange[0])/2
+        stiffnessOffset = (stiffnessRange[1] + stiffnessRange[0])/2
+        sinusoidal_stiffness_func = lambda t,freq,delay:(
+            stiffnessOffset
+            - stiffnessAmplitude*np.cos(
+                2*np.pi*(2*freq)
+                * (t-delay)
+            )
+        )
+
+        trajectory = startValue.T*np.ones((2,len(tempTime)))
+        trajectory[0,int(delay/self.dt):] = np.array(list(map(
+            sinusoidal_angle_func,
+            tempTime[int(delay/self.dt):],
+            frequencies,
+            delays
+        )))
+        trajectory[1,int(delay/self.dt):] = np.array(list(map(
+            sinusoidal_stiffness_func,
+            tempTime[int(delay/self.dt):],
+            frequencies,
+            delays
+        )))
+        return(trajectory)
+
+    def generate_desired_trajectory_SIN_STEP(
+            self,
+            delay=0.3, # s
+            stepRange=[0.2,1],# 1-5 Hz
+            fixedStep=False,
+            freq=1, # Hz
+            angleRange=None
+        ):
+
+        if angleRange is not None:
+            assert (type(angleRange)==list
+                    and len(angleRange)==2
+                    and angleRange[1]>angleRange[0]), \
+                "angleRange must be a list of length 2 in ascending order."
+        else:
+            angleRange = [
+                self.jointAngleBounds["LB"],
+                self.jointAngleBounds["UB"]
+            ]
+
+        assert (type(stepRange)==list
+                and len(stepRange)==2
+                and stepRange[1]>stepRange[0]), \
+            "stepRange must be a list of length 2 in ascending order."
+
+        assert type(fixedStep)==bool, "fixedStep must be either True or False (default). If true, the point-to-point step size will be equal to the period of the sinusoid."
+
+        startValue = np.array([[
+            self.jointAngleMidPoint,
+            self.jointStiffnessMidPoint
+        ]])
+
+        minStep = stepRange[0]/2 # default: 200 ms / 2 = 100 ms
+        maxStep = stepRange[1]/2 # default: 1000 ms / 2 = 500 ms
+
+        startValue = np.array([[
+            self.jointAngleMidPoint,
+            self.jointStiffnessMidPoint
+        ]])
+
+        trajectory = startValue.T*np.ones((2,len(self.time)))
+
+        ##  Sinusoidal Joint Angle
+        angleAmplitude = (angleRange[1] - angleRange[0])/2
+        angleOffset = (angleRange[1] + angleRange[0])/2
+        sinusoidal_angle_func = lambda t:(
+            angleOffset
+            + angleAmplitude*np.sin(
+                2*np.pi*freq
+                * (t-delay)
+            )
+        )
+        trajectory[0,int(delay/self.dt):] = np.array(list(map(
+            sinusoidal_angle_func,
+            self.time[int(delay/self.dt):]
+        )))
+
+        ##  Point-to-Point Joint Stiffness
+        allDone=False
+        i=int(delay/self.dt)
+        while allDone == False:
+            if fixedStep==True:
+                nextStepLength = int(1/freq/self.dt)
+            else: # nextStepLength is random within a range of frequencies
+                nextStepLength = int(
+                    np.random.uniform(minStep,maxStep)/self.dt
+                )
+            if nextStepLength<len(self.time)-i-1:
+                trajectory[1,i:i+nextStepLength] = [
+                    np.random.uniform(
+                        self.jointStiffnessBounds["LB"],
+                        self.jointStiffnessBounds["UB"]
+                    )
+                ]*nextStepLength
+                i+=nextStepLength
+            else:
+                trajectory[1,i:] = [
+                    np.random.uniform(
+                        self.jointStiffnessBounds["LB"],
+                        self.jointStiffnessBounds["UB"]
+                    )
+                ]*(len(self.time)-i)
+                allDone=True
+        filterLength = int((1/10)/self.dt/2)
+        b=np.ones(filterLength,)/(filterLength) #Finite Impulse Response (FIR) Moving Average (MA) filter with filter length (10 Hz^{-1} / dt) / 2
+        a=1
+        trajectory[1,:] = signal.filtfilt(b, a, trajectory[1,:])
+
+        return(trajectory)
+
+    def generate_desired_trajectory_STEP_SIN(
+            self,
+            delay=0.3,
+            freq=1,
+            stiffnessRange=None
+        ):
+
+        if stiffnessRange is not None:
+            assert (type(stiffnessRange)==list
+                    and len(stiffnessRange)==2
+                    and stiffnessRange[1]>stiffnessRange[0]), \
+                "stiffnessRange must be a list of length 2 in ascending order."
+        else:
+            stiffnessRange = [
+                self.jointStiffnessBounds["LB"],
+                self.jointStiffnessBounds["UB"]
+            ]
+
+        startValue = np.array([[
+            self.jointAngleMidPoint,
+            self.jointStiffnessBounds["LB"]
+        ]])
+
+        trajectory = startValue.T*np.ones((2,len(self.time)))
+
+        ## Point-to-Point Joint Angle
+        # Step duration is equal to the period of the sinusoid for fixed joint angles while modulating joint stiffess
+        stepLength = int(freq/self.dt)
+        allDone=False
+        i=int(delay/self.dt)
+        while allDone == False:
+            if i<len(self.time)-stepLength-1:
+                trajectory[0,i:i+stepLength] = [
+                    np.random.uniform(
+                        self.jointAngleBounds["LB"],
+                        self.jointAngleBounds["UB"]
+                    )
+                ]*stepLength
+                i+=stepLength
+            else:
+                trajectory[0,i:] = [
+                    np.random.uniform(
+                        self.jointAngleBounds["LB"],
+                        self.jointAngleBounds["UB"]
+                    )
+                ]*(len(self.time)-i)
+                allDone=True
+        filterLength = int((1/10)/self.dt/2)
+        b=np.ones(filterLength,)/(filterLength) #Finite Impulse Response (FIR) Moving Average (MA) filter with filter length (10 Hz^{-1} / dt) / 2
+        a=1
+        trajectory[0,:] = signal.filtfilt(b, a, trajectory[0,:])
+
+        ## Sinusoidal Joint Stiffness
+        stiffnessAmplitude = (stiffnessRange[1] - stiffnessRange[0])/2
+        stiffnessOffset = (stiffnessRange[1] + stiffnessRange[0])/2
+        sinusoidal_stiffness_func = lambda t:(
+            stiffnessOffset
+            - stiffnessAmplitude*np.cos(
+                2*np.pi*freq
+                * (t-delay)
+            )
+        )
+        trajectory[1,int(delay/self.dt):] = np.array(list(map(
+            sinusoidal_stiffness_func,
+            self.time[int(delay/self.dt):]
+        )))
+
+        return(trajectory)
+
+    def generate_desired_trajectory_STEP_STEP(
+            self,
+            delay=0.3,
+            stepRange=[0.2,1],
+            fixedStep=None
+        ):
+
+        assert (type(stepRange)==list
+                and len(stepRange)==2
+                and stepRange[1]>stepRange[0]), \
+            "stepRange must be a list of length 2 in ascending order."
+
+        if fixedStep is not None:
+            is_number(fixedStep,"fixedStep",notes="If not None, fixedStep should be a number (in seconds).")
+            assert abs((fixedStep*1000)%(self.dt*1000))<1e-5, "fixedStep should be a multiple of the timestep (self.dt = " + str(self.dt) + ")."
+
+        minStep = stepRange[0]/2 # default: 200 ms / 2 = 100 ms
+        maxStep = stepRange[1]/2 # default: 1000 ms / 2 = 500 ms
+
+        minValue = [
+            self.jointAngleBounds["LB"],
+            self.jointStiffnessBounds["LB"]
+        ]
+        maxValue = [
+            self.jointAngleBounds["UB"],
+            self.jointStiffnessBounds["UB"]
+        ]
+        startValue = np.array([[
+            self.jointAngleMidPoint,
+            self.jointStiffnessMidPoint
+        ]])
+
+        ## Point-to-Point for both joint angle and stiffness
+        trajectory = startValue.T*np.ones((2,len(self.time)))
+        allDone=False
+        i=int(delay/self.dt)
+        while allDone == False:
+            if fixedStep is None:
+                nextStepLength = int(
+                    np.random.uniform(minStep,maxStep)/self.dt
+                )
+            else: # nextStepLength is fixed
+                nextStepLength = int(fixedStep/self.dt)
+            if nextStepLength<len(self.time)-i-1:
+                trajectory[0,i:i+nextStepLength] = [
+                    np.random.uniform(
+                        minValue[0],
+                        maxValue[0]
+                    )
+                ]*nextStepLength
+                trajectory[1,i:i+nextStepLength] = [
+                    np.random.uniform(
+                        minValue[1],
+                        maxValue[1]
+                    )
+                ]*nextStepLength
+                i+=nextStepLength
+            else:
+                trajectory[0,i:] = [
+                    np.random.uniform(
+                        minValue[0],
+                        maxValue[0]
+                    )
+                ]*(len(self.time)-i)
+                trajectory[1,i:] = [
+                    np.random.uniform(
+                        minValue[1],
+                        maxValue[1]
+                    )
+                ]*(len(self.time)-i)
+                allDone=True
+        filterLength = int((1/10)/plant.dt/2)
+        b=np.ones(filterLength,)/(filterLength) #Finite Impulse Response (FIR) Moving Average (MA) filter with filter length (10 Hz^{-1} / dt) / 2
+        a=1
+        trajectory = signal.filtfilt(b, a, trajectory)
+        return(trajectory)
+
+    def generate_desired_trajectory_STEPS_2(
+            self,
+            type,
+            delay=3
+        ):
+
+        assert type in ["angle","stiffness","both"], "type must be either 'angle','stiffness' or 'both' (generate both at the same time)."
+
+        minStep = 0.3 # 300 ms
+        maxStep = 0.7 # 700 ms
+
+        if type!='both':
+            if type=='angle':
+                minValue = self.jointAngleBounds["LB"]
+                maxValue = self.jointAngleBounds["UB"]
+                startValue = self.jointAngleMidPoint
+                valueRange = self.jointAngleRange
+            elif type=='stiffness':
+                minValue = self.jointStiffnessBounds["LB"]
+                maxValue = self.jointStiffnessBounds["UB"]
+                startValue = self.jointStiffnessBounds["LB"]
+                valueRange = self.jointStiffnessRange
+            trajectory = startValue*np.ones((1,len(self.time)))
+            allDone=False
+            i=int(delay/self.dt)
+            while allDone == False:
+                nextStepLength = int(
+                    np.random.uniform(0.3,0.7)/self.dt
+                )
+                if nextStepLength<len(self.time)-i-1:
+                    trajectory[0,i:i+nextStepLength] = [
+                        np.random.uniform(
+                            minValue,
+                            maxValue
+                        )
+                    ]*nextStepLength
+                    i+=nextStepLength
+                else:
+                    trajectory[0,i:] = [
+                        np.random.uniform(
+                            minValue,
+                            maxValue
+                        )
+                    ]*(len(self.time)-i)
+                    allDone=True
+        else:
+            minValue = [
+                self.jointAngleBounds["LB"],
+                self.jointStiffnessBounds["LB"]
+            ]
+            maxValue = [
+                self.jointAngleBounds["UB"],
+                self.jointStiffnessBounds["UB"]
+            ]
+            startValue = [
+                self.jointAngleMidPoint,
+                self.jointStiffnessMidPoint
+            ]
+            valueRange = [
+                self.jointAngleRange,
+                self.jointStiffnessRange
+            ]
+
+            trajectory = np.ones((2,len(self.time)))
+            allDone=False
+            i=int(delay/self.dt)
+            while allDone == False:
+                nextStepLength = int(
+                    np.random.uniform(0.3,0.7)/self.dt
+                )
+                if nextStepLength<len(self.time)-i-1:
+                    trajectory[0,i:i+nextStepLength] = [
+                        np.random.uniform(
+                            minValue[0],
+                            maxValue[0]
+                        )
+                    ]*nextStepLength
+                    trajectory[1,i:i+nextStepLength] = [
+                        np.random.uniform(
+                            minValue[1],
+                            maxValue[1]
+                        )
+                    ]*nextStepLength
+                    i+=nextStepLength
+                else:
+                    trajectory[0,i:] = [
+                        np.random.uniform(
+                            minValue[0],
+                            maxValue[0]
+                        )
+                    ]*(len(self.time)-i)
+                    trajectory[1,i:] = [
+                        np.random.uniform(
+                            minValue[1],
+                            maxValue[1]
+                        )
+                    ]*(len(self.time)-i)
+                    allDone=True
+        filterLength = int((1/10)/plant.dt/2)
+        b=np.ones(filterLength,)/(filterLength) #Finite Impulse Response (FIR) Moving Average (MA) filter with filter length (10 Hz^{-1} / dt) / 2
+        a=1
+        trajectory = signal.filtfilt(b, a, trajectory)
+        return(trajectory)
+
     def generate_desired_trajectory_STEPS(
             self,
             passProbability,
@@ -684,6 +1252,53 @@ class plant_pendulum_1DOF2DOF:
                     )
                 else: # stay at previous input
                     trajectory[:,i] = trajectory[:,i-1]
+        return(trajectory)
+
+    def generate_desired_trajectory_SINUSOIDAL_2(
+            self,
+            type,
+            delay=3
+        ):
+
+        assert type in ["angle","stiffness"], "type must be either 'angle' or 'stiffness'."
+
+        randDelay = np.random.uniform(0.5,1.5)*delay
+        randFrequency = np.random.uniform(1/8,1)
+        randLength = len(self.time[int(randDelay/self.dt):])
+
+        if type=='angle':
+            amplitude = (
+                self.jointAngleMidPoint
+                - self.jointAngleBounds["LB"]
+            )
+            offset = self.jointAngleMidPoint
+            sinusoidal_func = lambda t:(
+                amplitude*np.sin(
+                    2*np.pi*randFrequency
+                    * (t-randDelay)
+                )
+                + offset
+            )
+
+        elif type=='stiffness':
+            amplitude = (
+                self.jointStiffnessMidPoint
+                - self.jointStiffnessBounds["LB"]
+            )
+            offset = self.jointStiffnessMidPoint
+            sinusoidal_func = lambda t: (
+                -amplitude*np.cos(
+                    2*np.pi*randFrequency
+                    * (t-randDelay)
+                )
+                + offset
+            )
+
+        startValue = sinusoidal_func(randDelay)
+        trajectory = startValue*np.ones((1,len(self.time)))
+        trajectory[0,int(randDelay/self.dt):] = [
+            sinusoidal_func(t) for t in self.time[-randLength:]
+        ]
         return(trajectory)
 
     def generate_desired_trajectory_SINUSOIDAL(
@@ -1388,7 +2003,7 @@ if __name__ == '__main__':
     saveFigures = args.savefigs
     animate = args.animate
 
-    time,X1d,Sd,X,U,Y,plant1,plant2 = test_plant()
+    time,X1d,Sd,X,U,Y,plant1,plant2 = test_plant(plantParams)
     if saveFigures==True:
         save_figures(
             "visualizations/",
