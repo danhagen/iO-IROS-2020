@@ -755,7 +755,7 @@ if __name__=="__main__":
 
     ### ANN parameters
     ANNParams = {
-        "Number of Layers" : 15,
+        "Number of Nodes" : 15,
         "Number of Epochs" : 50,
         "Number of Trials" : 1,
     }
@@ -809,10 +809,10 @@ if __name__=="__main__":
         default=ANNParams["Number of Epochs"]
     )
     parser.add_argument(
-        '-layers',
+        '-nodes',
         type=int,
-        help='Number of layers for each network to train (single hidden layer). Default is given by ANNParams.',
-        default=ANNParams["Number of Layers"]
+        help='Number of Nodes for each network to train (single hidden layer). Default is given by ANNParams.',
+        default=ANNParams["Number of Nodes"]
     )
     parser.add_argument(
         '-metrics',
@@ -854,7 +854,7 @@ if __name__=="__main__":
 
     plantParams["dt"] = args.dt
     ANNParams["Number of Epochs"] = args.epochs
-    ANNParams["Number of Layers"] = args.layers
+    ANNParams["Number of Nodes"] = args.nodes
 
     ### Generate plant
     tempSimulationDuration = 600
