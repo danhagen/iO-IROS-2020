@@ -1,7 +1,12 @@
-# iO-IROS-2020
-### ***(insideOut)* Submission for IEEE IROS 2020:**
-## Bio-inspired Foundation for Joint Angle Estimation from Non-Collocated Sensors in Tendon-Driven Robotics
-### Daniel A. Hagen, Ali Marjaninejad, & Francisco J. Valero-Cuevas
+<h1 align="center">iO-IROS-2020</br><em>(insideOut)</em></h1>
+<h2 align="center">Bio-inspired Foundation for Joint Angle Estimation</br>from Non-Collocated Sensors in Tendon-Driven Robotics</h2>
+<h3 align="center">Daniel A. Hagen, Ali Marjaninejad, & Francisco J. Valero-Cuevas</h3>
+
+<h3 align="center"> 
+  Accepted Abstract/Oral Presentation for</br>
+  IEEE International Conference on Intelligent Robots and Systems (IROS) 2020</br> 
+  (Preprint Available <a href="https://valerolab.org/Papers/IROS_2020_Accepted_Article_Preprint.pdf">Here</a>.)
+</h3>
 
 Estimates of limb posture are critical for the control of robotic systems. This is generally accomplished by utilizing on-location joint angle encoders which may complicate the design, increase limb inertia, and add noise to the system. Conversely, some innovative or smaller robotic morphologies can benefit from non-collocated sensors when encoder size becomes prohibitively larger or the joints are less accessible or subject to damage (e.g., distal joints of a robotic hand or foot sensors subject to repeated impact). These concerns are especially important for tendon-driven systems where motors (and their sensors) are not placed at the joints. This repository represents a framework for joint angle estimation by which artificial neural networks (ANNs) use limited-experience from motor babbling to predict joint angles. We draw our inspiration for this project from Nature where (i) muscles and tendons have mechanoreceptors, (ii) there are *no dedicated joint-angle sensors*, and (iii) dedicated neural networks perform *sensory fusion*. To demonstrate this algorithm, we simulated an inverted pendulum driven by an agonist-antagonist pair of motors that pull on tendons with nonlinear elasticity.
 
