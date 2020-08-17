@@ -25,7 +25,8 @@ Please note that you can find help for many of the python functions in this repo
 <h2 align="center">The Plant</h2> 
 
 <p align="center">
-  <img width="500" src="https://github.com/danhagen/iO-IROS-2020/blob/master/SupplementaryFigures/Schematic_1DOF2DOA_system.png?raw=true">
+  <img width="500" src="https://github.com/danhagen/iO-IROS-2020/blob/master/SupplementaryFigures/Schematic_1DOF2DOA_system.png?raw=true"></br>
+  <small>Fig. 1: Simple 1 degree of freedom revolute joint actuated by two motors that pull on tendons with nonlinear elasticity.</small>
 </p>
 
 Here we used a physical inverted pendulum that was controlled by two simulated brushed DC motors (i.e., backdriveable) that pulled on tendons with nonlinear (exponential) stiffness. This plant can either be given feedfoward inputs or controlled via a *feedback linearization controller* that takes advantage of the fact that joint stiffness and joint angle can be controlled independently. Simply prescribe trajectories for both output measures and the controller will track it.
@@ -38,8 +39,10 @@ The default `run plant.py` command will test the feedback linearization algorith
 In order to generate motor babbling data, we use the class `motor_babbling_1DOF2DOA`. The default `run motor_babbling_1DOF2DOA.py` will produce plots of random motor babbling and the resulting states of the plant. Figures will be saved in a time-stamped folder You also have the option to animate the babbling data (`--animate`). 
 
 <p align="center">
-  <img width="500" src="https://github.com/danhagen/iO-IROS-2020/blob/master/SupplementaryFigures/babblingInputs.png?raw=true">
-  <img width="500" src="https://github.com/danhagen/iO-IROS-2020/blob/master/SupplementaryFigures/Plant_States_vs_Time_from_Babbling.png?raw=true">
+  <img width="500" src="https://github.com/danhagen/iO-IROS-2020/blob/master/SupplementaryFigures/babblingInputs.png?raw=true"></br>
+  <small>Fig. 2: Sample plots of random motor babbling inputs.</small></br>
+  <img width="500" src="https://github.com/danhagen/iO-IROS-2020/blob/master/SupplementaryFigures/Plant_States_vs_Time_from_Babbling.png?raw=true"></br>
+  <small>Fig. 3: Sample plots of plant states that are the result of random motor babbling inputs.</small>
 </p>
 
 <h2 align="center">Train Articifical Neural Networks</h2>
@@ -52,7 +55,7 @@ To run the entire experiment, run `run run_multiple_trials_with_different_babbli
 
 <h2 align="center">Animate a Single Trial (All 4 ANNs Over 4 Different Movements)</h2>
 
-To visualize the performance of ANNs and their ability to generalize to other movement tasks, use the function `animate_sample_trials.py`. This will create an animation of how well each ANN did at predicting joint angle and will sweep across 4 different movements (joint angle and stiffness are either sinusoidal or point-to-point). 
+To visualize the performance of ANNs and their ability to generalize to other movement tasks, use the function `animate_sample_trials.py`. This will create an animation of how well each ANN did at predicting joint angle and will sweep across 4 different movements (joint angle and stiffness are either sinusoidal or point-to-point). **Click on the animation below to see more!**
 
 
   
