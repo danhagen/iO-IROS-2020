@@ -2,7 +2,6 @@ from test_NN_1DOF2DOA import *
 import matplotlib
 matplotlib.rcParams['pdf.fonttype'] = 42
 matplotlib.rcParams['ps.fonttype'] = 42
-from twilio.rest import Client
 from datetime import datetime
 
 basePath = "experimental_trials/"
@@ -17,7 +16,6 @@ for fileNameBase in [
 if __name__=='__main__':
     ### ANN parameters
     ANNParams = {
-        "Number of Nodes" : 15,
         "Number of Epochs" : 50,
         "Number of Trials" : 50,
     }
@@ -45,16 +43,16 @@ if __name__=='__main__':
         )
     )
     parser.add_argument(
+        '-dur',
+        type=float,
+        help='Number of seconds (float) for the simulation to run. Default is given by plantParams.',
+        default=plantParams["Simulation Duration"]
+    )
+    parser.add_argument(
         '-epochs',
         type=int,
         help='Number of epochs for each network to train. Default is given by ANNParams.',
         default=ANNParams["Number of Epochs"]
-    )
-    parser.add_argument(
-        '-nodes',
-        type=int,
-        help='Number of Nodes for each network to train (single hidden layer). Default is given by ANNParams.',
-        default=ANNParams["Number of Nodes"]
     )
     parser.add_argument(
         '-trials',
@@ -85,10 +83,9 @@ if __name__=='__main__':
 
     assert args.babType in ['continuous','step'], "babType must be either 'continuous' (default) or 'step'."
     babblingParams['Babbling Type'] = args.babType
-    ANNParams["Number of Nodes"] = args.nodes
+    plantParams["Simulation Duration"] = args.dur
 
-    # babblingDurations = list(np.arange(30,360+1,15))
-    babblingDurations = list(np.arange(1,10+1,1))
+    numberOfNodesList = list(np.arange(5,50+1,5))
     numberOfTrials = args.trials
     groupNames = [
         "all",
@@ -105,14 +102,14 @@ if __name__=='__main__':
     ]
 
     totalStartTime = time.time()
-    for dur in babblingDurations:
+    for nodeNumber in numberOfNodesList:
         startTime = time.time()
         trialStartTime = startTime
-        print("Babbling Duration: " + str(dur) + "s")
+        print("Number of Nodes: " + str(nodeNumber))
         for i in range(numberOfTrials):
             print("Running Trial " + str(i+1) + "/" + str(numberOfTrials))
 
-            plantParams["Simulation Duration"] = int(dur) # returned to original value.
+            ANNParams["Number of Nodes"] = int(nodeNumber) # returned to original value.
 
             ANN = neural_network(ANNParams,babblingParams,plantParams)
             experimentalData = ANN.run_experimental_trial()
@@ -196,23 +193,23 @@ if __name__=='__main__':
             trialStartTime = time.time()
             print('Run Time: ' + runTime + " " + trialRunTime + "\n")
 
-        print("Consolidating Data from " + str(dur) + "s Babbling Trials...")
-        plot_consolidated_data_babbling_duration_experiment(dur,metrics=args.metrics)
+        print("Consolidating Data from Trials where ANNs have " + str(nodeNumber) + " hidden layer nodes...")
+        plot_consolidated_data_number_of_nodes_experiment(nodeNumber,metrics=args.metrics)
 
     pathName = (
         'experimental_trials/'
     )
     folderName = (
-        'All_Consolidated_Trials_'
+        'All_Consolidated_Trials_Nodes_Experiment_'
         + '{:03d}'.format(int(args.trials))
         + '_Trials_' + babblingParams["Babbling Type"].capitalize()
         + '_Babbling_'
-        + '{:03d}'.format(int(args.nodes)) + "_Nodes"
+        + '{:03d}'.format(int(args.dur)) + 's'
         + '/'
     )
     print("Plotting all data!")
     for metric in metrics:
-        plot_babbling_duration_vs_average_performance(metric)
+        plot_number_of_nodes_vs_average_performance(metric)
         save_figures(
             pathName,
             "perf_v_bab_dur_"+metric,
@@ -237,7 +234,7 @@ if __name__=='__main__':
             + 'Total Run Time: ' + runTime + '\n\n'
             + '```params = {\n'
             + '\t"Number of Trials" : ' + str(args.trials) + ',\n'
-            + '\t"Number of Nodes" : ' + str(args.nodes) + ',\n'
+            + '\t"Babbling Duration" : ' + str(args.dur) + ', # in seconds\n'
             + '\t"Babbling Type" : "' + args.babType + '"\n'
             + '}```'
         )

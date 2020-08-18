@@ -11,7 +11,7 @@ import pickle
 
 ### ANN parameters
 ANNParams = {
-    "Number of Layers" : 15,
+    "Number of Nodes" : 15,
     "Number of Epochs" : 50,
     "Number of Trials" : 2,
 }
@@ -79,8 +79,8 @@ class neural_network:
         is_number(self.numberOfEpochs,"Number of Epochs",
             default=50,note="Must be an int.")
 
-        self.numberOfLayers = ANNParams.get("Number of Layers",15)
-        is_number(self.numberOfLayers,"Number of Layers",
+        self.numberOfLayers = ANNParams.get("Number of Nodes",15)
+        is_number(self.numberOfLayers,"Number of Nodes",
             default=15,note="Must be an int.")
 
         self.groups = ["all","bio","allmotor","kinapprox"]
@@ -465,10 +465,10 @@ if __name__=="__main__":
         default=ANNParams["Number of Epochs"]
     )
     parser.add_argument(
-        '-layers',
+        '-nodes',
         type=int,
-        help='Number of layers for each network to train (single hidden layer). Default is given by ANNParams.',
-        default=ANNParams["Number of Layers"]
+        help='Number of Nodes for each network to train (single hidden layer). Default is given by ANNParams.',
+        default=ANNParams["Number of Nodes"]
     )
     parser.add_argument(
         '-trials',
@@ -480,7 +480,7 @@ if __name__=="__main__":
     plantParams["dt"] = args.dt
     plantParams["Simulation Duration"] = args.dur
     ANNParams["Number of Epochs"] = args.epochs
-    ANNParams["Number of Layers"] = args.layers
+    ANNParams["Number of Nodes"] = args.nodes
     ANNParams["Number of Trials"] = args.trials
 
     ### Generate Neural Network Class

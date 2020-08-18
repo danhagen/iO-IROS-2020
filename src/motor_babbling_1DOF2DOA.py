@@ -1,9 +1,8 @@
 from plant import plant_pendulum_1DOF2DOF
 from save_params import *
 from plantParams import *
-from animate import *
+from animate_babbling import *
 from danpy.useful_functions import is_number, save_figures
-from animate import animate_pendulum
 import scipy.io as sio
 import argparse
 import textwrap
@@ -12,27 +11,28 @@ import seaborn as sns
 
 babblingParams = {
     "Seed" : None,
-    "Filter Length" : 200,
+    "Filter Length" : 10,
     "Pass Probability" : plantParams["dt"]/4,
     "Input Bounds" : [0,10],
     "Low Cutoff Frequency" : 1,
     "High Cutoff Frequency" : 10,
     "Buttersworth Filter Order" : 9,
-    "Babbling Type" : 'continuous' # ['continuous','step']
+    "Babbling Type" : 'step', # ['continuous','step']
+    "Force Cocontraction" : True,
+    "Cocontraction Standard Deviation" : 1
 }
 
 class motor_babbling_1DOF2DOA:
     def __init__(self,plant,babblingParams):
         self.totalParams = plant.params
         self.totalParams.update(babblingParams)
+        self.plant = plant
 
         self.seed = babblingParams.get("Seed",None)
         if self.seed is not None:
             is_number(self.seed,"Seed",default="None")
             np.random.seed(self.seed)
 
-        self.filterLength = babblingParams.get("Filter Length",100)
-        is_number(self.filterLength,"Filter Length",default=100)
 
         self.passProbability = babblingParams.get("Pass Probability",0.001)
         is_number(self.passProbability,"Pass Probability",default=0.001)
@@ -57,10 +57,28 @@ class motor_babbling_1DOF2DOA:
         self.filterOrder = babblingParams.get("Buttersworth Filter Order",5)
         is_number(self.filterOrder,"Buttersworth Filter Order",default=5)
 
+        assert type(babblingParams.get("Force Cocontraction",False))==bool, "'Force Cocontraction' should be either True or False (default)."
+        if babblingParams.get("Force Cocontraction",False)==True:
+            self.cocontraction = True
+            self.cocontractionSTD = babblingParams.get("Cocontraction Standard Deviation",1)
+            is_number(self.cocontractionSTD,"Cocontraction Standard Deviation",default=1)
+        else:
+            self.cocontraction = False
+
         self.babblingType = babblingParams.get("Babbling Type",'continuous')
         assert self.babblingType in ['continuous','step'], "babblingType must be either 'continuous' (default) or 'step'."
+        self.filterLength = int(1/self.highCutoffFrequency/2/self.plant.dt)
+        # if self.babblingType == 'continuous':
+        #     '''
+        #     filterLength should be equal to the length of each random number so that the moving average peaks at the random number when exactly in the middle of the phase.
+        #
+        #     Each phase should be "one over half of the maximum frequency" seconds long to ensure that the maximum frequency would occur with two phases.
+        #     '''
+        #     self.filterLength = int(1/self.highCutoffFrequency/2/self.plant.dt)
+        # else: # self.babblingType == 'step'
+        #     self.filterLength = babblingParams.get("Filter Length",100)
+        #     is_number(self.filterLength,"Filter Length",default=100)
 
-        self.plant = plant
     def band_limited_noise(self):
         numberOfSamples = len(self.plant.time)-1
         samplingFrequency = 1/self.plant.dt
@@ -162,18 +180,47 @@ class motor_babbling_1DOF2DOA:
         numberOfSamples = len(self.plant.time)-1
         self.babblingSignals = np.zeros((numberOfSamples,2))
 
-        self.stepDuration = 0.200 # 200 ms
+        self.stepDuration = 1/self.highCutoffFrequency/2 # 50 ms
         indices = [
-            int(el/self.plant.dt) for el in np.arange(0,self.plant.time[-1]+self.stepDuration,self.stepDuration)
+            int(np.round(el/self.plant.dt))
+            for el in np.arange(
+                self.stepDuration,
+                self.plant.time[-1]+self.stepDuration,
+                self.stepDuration
+            )
         ]
-        for i in range(len(indices)-1):
-            stepSize = int(len(self.plant.time[indices[i]:indices[i+1]]))
-            self.babblingSignals[i*stepSize:(i+1)*stepSize,0] = [
-                np.random.uniform(self.inputMinimum,self.inputMaximum)
-            ]*stepSize
-            self.babblingSignals[i*stepSize:(i+1)*stepSize,1] = [
-                np.random.uniform(self.inputMinimum,self.inputMaximum)
-            ]*stepSize
+        indices[-1]=int(len(self.plant.time)-1)
+        if self.cocontraction==False:
+            for i in range(len(indices)-1):
+                stepSize = int(len(self.plant.time[indices[i]:indices[i+1]]))
+                self.babblingSignals[i*stepSize:(i+1)*stepSize,0] = [
+                    np.random.uniform(self.inputMinimum,self.inputMaximum)
+                ]*stepSize
+                self.babblingSignals[i*stepSize:(i+1)*stepSize,1] = [
+                    np.random.uniform(self.inputMinimum,self.inputMaximum)
+                ]*stepSize
+        else: #self.cocontraction==True
+            for i in range(len(indices)-1):
+                stepSize = int(len(self.plant.time[indices[i]:indices[i+1]]))
+                u1_rand = np.random.uniform(
+                    self.inputMinimum,
+                    self.inputMaximum
+                )
+                u2_rand = np.random.normal(
+                    u1_rand,
+                    self.cocontractionSTD
+                )
+                if u2_rand<=self.inputMinimum:
+                    u2_rand=self.inputMinimum
+                elif u2_rand>=self.inputMaximum:
+                    u2_rand=self.inputMaximum
+
+                self.babblingSignals[indices[i]:indices[i+1],0] = [
+                    u1_rand
+                ]*stepSize
+                self.babblingSignals[indices[i]:indices[i+1],1] = [
+                    u2_rand
+                ]*stepSize
 
         ### Filter the offset signals
         # nyq = 0.5 / self.plant.dt
@@ -220,58 +267,113 @@ class motor_babbling_1DOF2DOA:
             ],
             axis=1
         )
-        self.babblingNoise = (
-            (self.babblingNoise-self.babblingNoise.min())
-            / (self.babblingNoise.max() - self.babblingNoise.min())
-        )
-        delay = 3 # sec
-
-        ### first transition after delay
-        self.babblingSignalOffsets[int(delay/self.plant.dt),:] = (
-            self.inputRange
-            * np.random.uniform(0,1,(2,)) # random number inside
-            + self.inputMinimum
-        )
-
-        ### Running remainder of simulation
-        for i in range(int(delay/self.plant.dt)+1, numberOfSamples):
-            if np.random.uniform() < self.passProbability: # change input offset
-                self.babblingSignalOffsets[i,:] = (
-                    self.inputRange
-                    * np.random.uniform(0,1,(2,)) # random number inside
-                    + self.inputMinimum
+        # self.babblingNoise = (
+        #     (self.babblingNoise-self.babblingNoise.min())
+        #     / (self.babblingNoise.max() - self.babblingNoise.min())
+        # )
+        self.stepDuration = 3/self.highCutoffFrequency # 300 ms
+        indices = [
+            int(np.round(el/self.plant.dt))
+            for el in np.arange(
+                self.stepDuration,
+                self.plant.time[-1]+self.stepDuration,
+                self.stepDuration
+            )
+        ]
+        indices[-1]=int(len(self.plant.time)-1)
+        if self.cocontraction==True:
+            for i in range(len(indices)-1):
+                stepSize = int(len(self.plant.time[indices[i]:indices[i+1]]))
+                u1_rand = np.random.uniform(
+                    self.inputMinimum,
+                    self.inputMaximum
                 )
-            else: # stay at previous input
-                self.babblingSignalOffsets[i,:] = self.babblingSignalOffsets[i-1,:]
+                u2_rand = np.random.normal(
+                    u1_rand,
+                    self.cocontractionSTD
+                )
+                if u2_rand<=self.inputMinimum:
+                    u2_rand=self.inputMinimum
+                elif u2_rand>=self.inputMaximum:
+                    u2_rand=self.inputMaximum
 
-        ### Find the DC offsets
-        self.noiseAmplitude = np.concatenate(
-            [
-                abs(
-                    self.babblingSignalOffsets.min(axis=1)
-                    - self.inputBounds[0]
-                )[:,np.newaxis],
-                abs(
-                    self.inputBounds[1]
-                    - self.babblingSignalOffsets.max(axis=1)
-                )[:,np.newaxis]
-            ],
-            axis=1
-        ).min(axis=1)
+                self.babblingSignalOffsets[indices[i]:indices[i+1],0] = [
+                    u1_rand
+                ]*stepSize
+                self.babblingSignalOffsets[indices[i]:indices[i+1],1] = [
+                    u2_rand
+                ]*stepSize
 
-        ### Filter the offset signals
-        b = np.ones(self.filterLength,)/(self.filterLength) #Finite Impulse Response (FIR) Moving Average (MA) filter with one second filter length
-        a=1
-        self.babblingSignalOffsets = signal.filtfilt(
-            b,a,
-            self.babblingSignalOffsets.T
-        ).T
+            ### Filter the offset signals
+            b = np.ones(self.filterLength,)/(self.filterLength) #Finite Impulse Response (FIR) Moving Average (MA) filter with one second filter length
+            a=1
+            self.babblingSignalOffsets = signal.filtfilt(
+                b,a,
+                self.babblingSignalOffsets.T
+            ).T
 
-        ### Combine the signals
-        self.babblingSignals = (
-            self.babblingSignalOffsets
-            + (self.noiseAmplitude*(self.babblingNoise.T)).T
-        )
+            ### Combine the signals
+            self.babblingSignals[indices[0]:,:] =  (
+                self.babblingSignalOffsets[indices[0]:,:]
+                    + (
+                        self.babblingNoise[indices[0]:,:]
+                        - np.mean(self.babblingNoise[indices[0]:,:],axis=0)
+                    )
+                    * (
+                        (self.cocontractionSTD/4)
+                        / np.std(self.babblingNoise[indices[0]:,:],axis=0)
+                    )
+                )
+
+        else: # self.cocontraction==False:
+            ### first transition after delay
+            delay=3
+            self.babblingSignalOffsets[int(delay/self.plant.dt),:] = (
+                self.inputRange
+                * np.random.uniform(0,1,(2,)) # random number inside
+                + self.inputMinimum
+            )
+            ### Running remainder of simulation
+            for i in range(int(delay/self.plant.dt)+1, numberOfSamples):
+                if np.random.uniform() < self.passProbability: # change input offset
+                    self.babblingSignalOffsets[i,:] = np.random.uniform(
+                        self.inputMinimum,
+                        self.inputMaximum,
+                        (2,)
+                    )
+                else: # stay at previous input
+                    self.babblingSignalOffsets[i,:] = self.babblingSignalOffsets[i-1,:]
+
+            ### Find the DC offsets
+            self.noiseAmplitude = np.concatenate(
+                [
+                    abs(
+                        self.babblingSignalOffsets.min(axis=1)
+                        - self.inputBounds[0]
+                    )[:,np.newaxis],
+                    abs(
+                        self.inputBounds[1]
+                        - self.babblingSignalOffsets.max(axis=1)
+                    )[:,np.newaxis]
+                ],
+                axis=1
+            ).min(axis=1)
+
+            ### Filter the offset signals
+            b = np.ones(self.filterLength,)/(self.filterLength) #Finite Impulse Response (FIR) Moving Average (MA) filter with one second filter length
+            a=1
+            self.babblingSignalOffsets = signal.filtfilt(
+                b,a,
+                self.babblingSignalOffsets.T
+            ).T
+
+            ### Combine the signals
+            self.babblingSignals = (
+                self.babblingSignalOffsets
+                + (self.noiseAmplitude*(self.babblingNoise.T)).T
+            )
+
+
 
         ### Bound the signals
         for i in range(numberOfSamples):
@@ -511,20 +613,17 @@ if __name__ == '__main__':
     )
 
     if animate==True:
-        downsamplingFactor = int(0.3/plantParams["dt"])
+        downsamplingFactor = 10
         time = output["time"]
         X = output["X"]
         U = output["U"]
-        Y = np.array([
-            X[0,:],
-            np.array(list(map(lambda X: plant.hs(X),X.T)))
-        ])
-        ani = animate_pendulum(
-            time[::downsamplingFactor],
-            X[:,::downsamplingFactor],
-            U[:,::downsamplingFactor],
-            Y[:,::downsamplingFactor],
-            Y[:,::downsamplingFactor],
+        # Y = np.array([
+        #     X[0,:],
+        #     np.array(list(map(lambda X: plant.hs(X),X.T)))
+        # ])
+        ani = animate_pendulum_babbling(
+            time,X,U,
+            downsamplingFactor,
             **plantParams
         )
         ani.start(downsamplingFactor)

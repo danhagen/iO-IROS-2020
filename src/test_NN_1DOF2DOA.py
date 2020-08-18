@@ -114,6 +114,91 @@ def plot_babbling_duration_vs_average_performance(metric,directory=None):
             # )
         if i==1:
             axs[i].legend(groupNames,loc='upper right')
+def plot_number_of_nodes_vs_average_performance(metric,directory=None):
+    labels = [
+        "(Sinusoidal Angle / Sinusoidal Stiffness)",
+        "(Step Angle / Sinusoidal Stiffness)",
+        "(Sinusoidal Angle / Step Stiffness)",
+        "(Step Angle / Step Stiffness)"
+    ]
+
+    ### get the testing trial directories
+    # assert type(metrics)==list, "metrics must be a list of strings."
+    assert metric in ["RMSE","STD","MAE"], 'Invalid metric! metrics must include "RMSE","STD", or "MAE".'
+
+    if directory==None:
+        directory = "experimental_trials/"
+    else:
+        assert os.path.isdir(directory), "Enter a valid directory."
+    trialDirectories = [
+        name for name in os.listdir(directory)
+        if os.path.isdir(os.path.join(directory, name))
+        and name[:2]=='Co'
+    ]
+    numberOfNodesList = np.array([
+        int(name[-9:-6]) for name in trialDirectories
+    ])
+    totalPerformanceData = {}
+    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12,10))
+    axs = [ax1,ax2,ax3,ax4]
+    for n in range(len(trialDirectories)):
+        with open(directory+trialDirectories[n]+'/consolidatedOutputData.pkl', 'rb') as handle:
+            tempOutputData = pickle.load(handle)
+            """
+                tempOutputData
+                    ..<Movement Type>
+                        ..<Group Name>
+                            ..<Metric> (in rad.)
+                            ..<Metric List> (in rad.)
+            """
+        if n==0:
+            for movement in movementTypes:
+                totalPerformanceData[movement] = {}
+                for group in groupNames:
+                    totalPerformanceData[movement][group] = {}
+                    totalPerformanceData[movement][group]['values'] = []
+                    # totalPerformanceData[key][group]['STDs'] = []
+        for movement in movementTypes:
+            for group in groupNames:
+                totalPerformanceData[movement][group]['values'].append(
+                    180*tempOutputData[movement][group]["experiment"+metric]/np.pi
+                ) # (in deg.)
+                # totalPerformanceData[movement][group]['values'].append(
+                #     180*np.median(tempOutputData[movement][group]["experiment"+metric+"_list"])/np.pi
+                # )
+                # totalPerformanceData[movement][group]['STDs'].append(
+                #     180*np.std(tempOutputData[movement][group]["experiment"+metric+"_list"])/np.pi
+                # )
+    for i in range(len(movementTypes)):
+        axs[i].spines["right"].set_visible(False)
+        axs[i].spines["top"].set_visible(False)
+        axs[i].set_xlabel("Number of Nodes in Hidden Layer")
+        # axs[i].set_xticks(list(numberOfNodesList))
+        # axs[i].set_xticklabels([int(el) for el in numberOfNodesList])
+        axs[i].set_ylabel("Avg. Performance ("+metric+" in deg.)")
+        axs[i].set_ylim([0,35]) # Change as needed!
+        axs[i].set_title(labels[i])
+        for j in range(len(groupNames)):
+            axs[i].plot(
+                numberOfNodesList,
+                totalPerformanceData[movementTypes[i]][groupNames[j]]['values'],
+                c=colors[j]
+            )
+            # axs[i].fill_between(
+            #     numberOfNodesList,
+            #     (
+            #         np.array(totalPerformanceData[movementTypes[i]][groupNames[j]]['values'])
+            #         + np.array(totalPerformanceData[movementTypes[i]][groupNames[j]]['STDs'])
+            #     ),
+            #     (
+            #         np.array(totalPerformanceData[movementTypes[i]][groupNames[j]]['values'])
+            #         - np.array(totalPerformanceData[movementTypes[i]][groupNames[j]]['STDs'])
+            #     ),
+            #     color=colors[j],
+            #     alpha='0.5'
+            # )
+        if i==1:
+            axs[i].legend(groupNames,loc='upper right')
 
 def generate_and_save_sensory_data(plant,x1d,sd,savePath=None):
     X1d = np.zeros((5,len(plant.time)))
@@ -155,9 +240,9 @@ def plot_experimental_data(experimentalData,dt,returnFigs=True):
     top_axs = [ax1a,ax2a,ax3a,ax4a]
     bot_axs = [ax1b,ax2b,ax3b,ax4b]
     # subkeys = list(experimentalData['all'].keys())
-    timeArray = dt*np.array(list(range(
-        len(experimentalData['angleSin_stiffSin']['all']['rawError'])
-    )))
+    # timeArray = dt*np.array(list(range(
+    #     len(experimentalData['angleSin_stiffSin']['all']['rawError'])
+    # )))
     for i in range(len(movementTypes)):
         top_axs[i].set_ylabel("Joint Angle (deg.)")
         top_axs[i].spines["right"].set_visible(False)
@@ -180,6 +265,9 @@ def plot_experimental_data(experimentalData,dt,returnFigs=True):
         bot_axs[i].spines["top"].set_visible(False)
 
         for j in range(len(groupNames)):
+            timeArray = dt*np.array(list(range(
+                len(experimentalData[movementTypes[i]][groupNames[j]]['rawError'])
+            )))
             top_axs[i].plot(
                 timeArray,
                 (
@@ -816,7 +904,94 @@ def plot_all_error_distributions(outputData,returnFigs=True):
     if returnFigs==True:
         return(figs)
 
-def plot_consolidated_data(babblingDuration,directory=None,metrics=None,includePSD=False):
+def plot_metric_distributions(outputData,metric,returnFigs=True):
+    assert metric in ["MAE","RMSE","STD"], "metric must be either 'MAE', 'RMSE', or 'STD'."
+    labels = [
+        "(Sinusoidal Angle / Sinusoidal Stiffness)",
+        "(Step Angle / Sinusoidal Stiffness)",
+        "(Sinusoidal Angle / Step Stiffness)",
+        "(Step Angle / Step Stiffness)"
+    ]
+    prettyGroupNames = [
+        "All\n Available\n States",
+        "The\n Bio-Inspired\n Set",
+        "Motor Position\n and\n Velocity Only",
+        "All\n Motor\n States"
+    ]
+
+    """
+        You should create a 3,2 plot with the first row being just the overlapping KSE plots (hist=False), then you should do a normed hist for each of the following subplots for each group.
+    """
+    figs = []
+    numberOfTrials = len(
+        outputData[movementTypes[0]][groupNames[0]]['experiment'+metric+"_list"]
+    )
+    for i in range(len(movementTypes)):
+        tempFig = plt.figure(figsize=(10,10))
+        gs = tempFig.add_gridspec(3,2)
+        ax1 = tempFig.add_axes((0.1,0.7,0.8,0.25)) #All KDE plots
+        ax1.set_xlabel(metric + " (in deg.)")
+        ax1.set_ylabel("Kernel Density Estimation")
+        ax1.spines['top'].set_visible(False)
+        ax1.spines['right'].set_visible(False)
+        ax2 = tempFig.add_axes((0.1,0.3625,0.35,0.275)) # All
+        ax3 = tempFig.add_axes((0.55,0.3625,0.35,0.275)) # Bio
+        ax4 = tempFig.add_axes((0.1,0.05,0.35,0.275)) # Kin Approx
+        ax4.set_xlabel(metric + " (in deg.)")
+        ax4.set_ylabel("Percentage of Trials (N="+str(numberOfTrials)+")")
+        ax5 = tempFig.add_axes((0.55,0.05,0.35,0.275)) # All Motor
+        axs = [ax2,ax3,ax4,ax5]
+        plt.suptitle(labels[i],fontsize=16)
+        for j in range(len(groupNames)):
+            data = np.array(
+                outputData[movementTypes[i]][groupNames[j]]['experiment'+metric+"_list"]
+            )*180/np.pi
+            sns.distplot(
+                data,
+                hist=False,
+                color=colors[j],
+                ax=ax1
+            )
+            sns.distplot(
+                data,
+                hist=True,
+                kde=False,
+                color=colors[j],
+                hist_kws={
+                    'weights': np.ones(len(data))/len(data)
+                },
+                ax=axs[j]
+            )
+            axs[j].set_yticklabels(["{:.1f}%".format(100*el) for el in axs[j].get_yticks()])
+            axs[j].text(
+                1.5*np.average(axs[j].get_xlim()),
+                0.75*axs[j].get_ylim()[1],
+                prettyGroupNames[j],
+                fontsize=14,
+                color=colors[j],
+                horizontalalignment='center',
+                verticalalignment='center',
+                bbox=dict(
+                    facecolor='white',
+                    edgecolor=colors[j],
+                    boxstyle='round,pad=0.5',
+                    alpha=0.75
+                )
+            )
+            # axs[j].set_title(
+            #     prettyGroupNames[j],
+            #     fontsize=14,
+            #     color=colors[j],
+            #     y=0.95
+            # )
+            axs[j].spines['top'].set_visible(False)
+            axs[j].spines['right'].set_visible(False)
+        figs.append(tempFig)
+
+    if returnFigs==True:
+        return(figs)
+
+def plot_consolidated_data_babbling_duration_experiment(babblingDuration,directory=None,metrics=None,includePSD=False):
     if metrics is None:
         metrics = ["MAE"]
         metricKeys = ["experimentMAE"]
@@ -1023,13 +1198,273 @@ def plot_consolidated_data(babblingDuration,directory=None,metrics=None,includeP
             metric=metric,
             returnFig=True
         )
+        figs = plot_metric_distributions(
+            totalOutputData,
+            metric,
+            returnFigs=True
+        )
         # figs = plot_all_polar_bar_plots(
         #     totalOutputData,
         #     metric=metric,
         #     returnFigs=True
         # )
         # figs.insert(0,fig)
-        figs = [fig]
+        figs.insert(0,fig)
+
+        save_figures(
+            directory+folderName,
+            metric,
+            {},
+            figs=figs,
+            subFolderName=metric+"/",
+            saveAsPDF=True
+        )
+        plt.close('all')
+    """
+    Consolidated to include:
+        - AVERAGE metrics (this is not the same as the metric average for all data points, but instead the average metric across trials)
+        - metric lists
+    """
+    consolidatedOutputData = {}
+    for movement in movementTypes:
+        consolidatedOutputData[movement]={}
+        for group in groupNames:
+            consolidatedOutputData[movement][group]={}
+            for metric in metricKeys:
+                consolidatedOutputData[movement][group][metric] = \
+                    totalOutputData[movement][group][metric]
+                consolidatedOutputData[movement][group][metric+"_list"] = \
+                    totalOutputData[movement][group][metric+"_list"]
+    fileName = (
+        "consolidatedOutputData.pkl"
+    )
+    with open(directory+folderName+fileName, 'wb') as handle:
+        pickle.dump(
+            consolidatedOutputData,
+            handle,
+            protocol=pickle.HIGHEST_PROTOCOL
+        )
+
+def plot_consolidated_data_number_of_nodes_experiment(numberOfNodes,directory=None,metrics=None,includePSD=False):
+    if metrics is None:
+        metrics = ["MAE"]
+        metricKeys = ["experimentMAE"]
+    else:
+        assert type(metrics)==list, "metrics must be a list of strings."
+        for metric in metrics:
+            assert metric in ["RMSE","STD","MAE"], 'Invalid metric! metrics must include "RMSE","STD", or "MAE".'
+        metricKeys = ["experiment"+metric for metric in metrics]
+
+    ### get the testing trial directories
+    if directory==None:
+        directory = "experimental_trials/"
+    else:
+        assert path.isdir(directory), "Enter a valid directory."
+
+    folderName = (
+        'Consolidated_Trials_'
+        + '{:03d}'.format(int(numberOfNodes))
+        + '_Nodes/'
+    )
+
+    trialDirectories = [
+        name for name in listdir(directory)
+        if path.isdir(path.join(directory, name))
+        and name[:2]=='20'
+    ]
+    numberOfTrials = len(trialDirectories)
+
+    # Training Data
+
+    totalTrainingData = {
+        "all" : {"perf":{},"avg_best_perf":{}},
+        "bio" : {"perf":{},"avg_best_perf":{}},
+        "kinapprox" : {"perf":{},"avg_best_perf":{}},
+        "allmotor" : {"perf":{},"avg_best_perf":{}}
+    }
+
+    for n in range(numberOfTrials):
+        with open(directory+trialDirectories[n]+'/trainingData.pkl', 'rb') as handle:
+            tempTrainingData = pickle.load(handle)
+        if n == 0:
+            for key in tempTrainingData:
+                totalTrainingData[key]["perf"] = np.array(
+                    tempTrainingData[key]["tr"]["perf"]._data
+                ) / numberOfTrials
+                totalTrainingData[key]["avg_best_perf"] = (
+                    tempTrainingData[key]["tr"]["best_perf"]
+                    / numberOfTrials
+                )
+        else:
+            for key in tempTrainingData:
+                totalTrainingData[key]["perf"] += np.array(
+                    tempTrainingData[key]["tr"]["perf"]._data
+                ) / numberOfTrials
+                totalTrainingData[key]["avg_best_perf"] += (
+                    tempTrainingData[key]["tr"]["best_perf"]
+                    / numberOfTrials
+                )
+    numberOfEpochs = len(totalTrainingData['all']["perf"])-1
+
+    plot_training_performance(totalTrainingData,numberOfEpochs,numberOfTrials)
+
+    saveParams = {
+        "Babbling Duration" : plantParams["Simulation Duration"],
+        "Number of Trials" : numberOfTrials,
+        "Number of Epochs" : numberOfEpochs,
+        "Number of Nodes" : numberOfNodes
+    }
+    save_figures(
+        directory,
+        "perf_v_epoch",
+        saveParams,
+        subFolderName=folderName,
+        saveAsPDF=True
+    )
+    plt.close('all')
+
+    # Experimental Data
+
+    totalOutputData = {}
+
+    keys = [
+        "rawError",
+        "expectedJointAngle"
+    ]
+    [keys.append(metricKey) for metricKey in metricKeys]
+
+    for n in range(numberOfTrials):
+        with open(path.join(directory+trialDirectories[n],'experimentalData.pkl'), 'rb') as handle:
+            tempOutputData = pickle.load(handle)
+        if n == 0:
+            totalOutputData = tempOutputData
+            """
+                tempOutputData
+                    ..<Movement Type>
+                        ..<Group Name>
+                            expectedJointAngle (in rad.)
+                            predictedJointAngle (in rad.)
+                            rawError (in rad.)
+                            experimentRMSE (in rad.)
+                            experimentMAE (in rad.)
+                            experimentSTD (in rad.)
+            """
+            for movement in movementTypes:
+                for group in groupNames:
+                    for key in metricKeys:
+                        totalOutputData[movement][group][key+"_list"] = [
+                            totalOutputData[movement][group][key]
+                        ]
+                        totalOutputData[movement][group][key] = (
+                            totalOutputData[movement][group][key]
+                            / numberOfTrials
+                        )
+                    if includePSD==True:
+                        freq, PSD = signal.welch(
+                            totalOutputData[movement][group]["rawError"],
+                            1/plantParams['dt']
+                        )
+                        totalOutputData[movement][group]["frequencies"] = freq
+                        totalOutputData[movement][group]["avg_PSD"] = PSD/numberOfTrials
+                    for key in [
+                            "rawError",
+                            "expectedJointAngle",
+                            "predictedJointAngle",
+                            "experimentMAE",
+                            "experimentRMSE",
+                            "experimentSTD"
+                        ]:
+                        if key not in metricKeys:
+                            del(totalOutputData[movement][group][key])
+        else:
+            for movement in movementTypes:
+                for group in groupNames:
+                    for key in metricKeys:
+                        totalOutputData[movement][group][key+"_list"].append(
+                            tempOutputData[movement][group][key]
+                        )
+                        totalOutputData[movement][group][key] += (
+                            tempOutputData[movement][group][key]
+                            / numberOfTrials
+                        )
+                    if includePSD==True:
+                        _, PSD = signal.welch(
+                            tempOutputData[movement][group]["rawError"],
+                            1/plantParams['dt']
+                        )
+                        totalOutputData[movement][group]["avg_PSD"] += PSD/numberOfTrials
+        # else:
+        #     for movement in movementTypes:
+        #         for group in groupNames:
+        #             for key in keys:
+        #                 if key not in metricKeys:
+        #                     totalOutputData[movement][group][key] = \
+        #                         np.concatenate([
+        #                             totalOutputData[movement][group][key],
+        #                             tempOutputData[movement][group][key]
+        #                         ],
+        #                         axis=0)
+        #                 else:
+        #                     totalOutputData[movement][group][key+"_list"].append(
+        #                         tempOutputData[movement][group][key]
+        #                     )
+        #                     totalOutputData[movement][group][key] += (
+        #                         tempOutputData[movement][group][key]
+        #                         / numberOfTrials
+        #                    )
+
+        # delete trial directory
+        shutil.rmtree(directory+trialDirectories[n])
+        """
+            totalOutputData
+                ..<Movement Type>
+                    ..<Group Name>
+                        [frequencies] (in Hz.)
+                        [avg_PSD] (in rad.^2/Hz.)
+                        experiment<Metric> (in rad.)
+                        experiment<Metric>_list (in rad.)
+        """
+
+    # plot_all_error_distributions(totalOutputData,returnFigs=True)
+    #
+    # save_figures(
+    #     directory+folderName,
+    #     "err_dist",
+    #     {},
+    #     subFolderName="Error_Distributions/"
+    # )
+    # plt.close('all')
+
+    if includePSD==True:
+        figs = plot_average_error_signal_power_spectrums(totalOutputData,returnFigs=True)
+
+        save_figures(
+            directory+folderName,
+            "err_PSD",
+            {},
+            figs=figs,
+            subFolderName="error_PSD/"
+        )
+        plt.close('all')
+
+    for metric in metrics:
+        fig = plot_bar_plots(
+            totalOutputData,
+            metric=metric,
+            returnFig=True
+        )
+        figs = plot_metric_distributions(
+            totalOutputData,
+            metric,
+            returnFigs=True
+        )
+        # figs = plot_all_polar_bar_plots(
+        #     totalOutputData,
+        #     metric=metric,
+        #     returnFigs=True
+        # )
+        # figs.insert(0,fig)
+        figs.insert(0,fig)
 
         save_figures(
             directory+folderName,
@@ -1079,7 +1514,7 @@ if __name__=="__main__":
 
     ### ANN parameters
     ANNParams = {
-        "Number of Layers" : 15,
+        "Number of Nodes" : 15,
         "Number of Epochs" : 50,
         "Number of Trials" : 50,
     }
@@ -1127,10 +1562,10 @@ if __name__=="__main__":
         default=ANNParams["Number of Epochs"]
     )
     parser.add_argument(
-        '-layers',
+        '-nodes',
         type=int,
-        help='Number of layers for each network to train (single hidden layer). Default is given by ANNParams.',
-        default=ANNParams["Number of Layers"]
+        help='Number of Nodes for each network to train (single hidden layer). Default is given by ANNParams.',
+        default=ANNParams["Number of Nodes"]
     )
     parser.add_argument(
         '-trials',
@@ -1164,7 +1599,7 @@ if __name__=="__main__":
         assert metric in ["RMSE","MAE","STD"], "Invalid metric! Must be either 'RMSE', 'MAE', or 'STD'"
 
     if args.consol==True:
-        plot_consolidated_data(args.dur,metrics=metrics,includePSD=False)
+        plot_consolidated_data_babbling_duration_experiment(args.dur,metrics=metrics,includePSD=False)
     else:
         if args.consolALL==True:
             pathName = (
@@ -1192,7 +1627,7 @@ if __name__=="__main__":
 
                 plantParams["dt"] = args.dt
                 ANNParams["Number of Epochs"] = args.epochs
-                ANNParams["Number of Layers"] = args.layers
+                ANNParams["Number of Nodes"] = args.nodes
 
                 ### Generate plant
                 tempSimulationDuration = 30
