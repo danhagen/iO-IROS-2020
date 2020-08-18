@@ -1076,7 +1076,7 @@ class plant_pendulum_1DOF2DOF:
                     )
                 ]*(len(self.time)-i)
                 allDone=True
-        filterLength = int((1/10)/plant.dt/2)
+        filterLength = int((1/10)/self.plant.dt/2)
         b=np.ones(filterLength,)/(filterLength) #Finite Impulse Response (FIR) Moving Average (MA) filter with filter length (10 Hz^{-1} / dt) / 2
         a=1
         trajectory = signal.filtfilt(b, a, trajectory)
